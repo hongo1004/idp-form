@@ -1594,26 +1594,23 @@ function exportImage() {
       }
       var totalPages = pages.length;
       var baseName = '员工个人发展计划表_' + name;
+      var imgData = [];
 
       for (var pi = 0; pi < totalPages; pi++) {
-        (function(idx) {
-          var pg = document.createElement('canvas');
-          pg.width = canvas.width;
-          pg.height = pageH;
-          var ctx = pg.getContext('2d');
-          ctx.fillStyle = '#ffffff';
-          ctx.fillRect(0, 0, pg.width, pg.height);
-          ctx.drawImage(canvas, 0, pages[idx].top, canvas.width, Math.min(pages[idx].height, pageH), 0, 0, canvas.width, Math.min(pages[idx].height, pageH));
-          var link = document.createElement('a');
-          link.download = totalPages > 1 ? baseName + '_第' + (idx+1) + '页.png' : baseName + '.png';
-          link.href = pg.toDataURL('image/png');
-          document.body.appendChild(link);
-          setTimeout(function() { link.click(); document.body.removeChild(link); }, 200 * (idx + 1));
-        })(pi);
+        var pg = document.createElement('canvas');
+        pg.width = canvas.width;
+        pg.height = pageH;
+        var ctx = pg.getContext('2d');
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, pg.width, pg.height);
+        ctx.drawImage(canvas, 0, pages[pi].top, canvas.width, Math.min(pages[pi].height, pageH), 0, 0, canvas.width, Math.min(pages[pi].height, pageH));
+        imgData.push(pg.toDataURL('image/png'));
       }
       if (content.parentNode) content.parentNode.removeChild(content);
 
-      showToast(totalPages > 1 ? ('图片已生成（共' + totalPages + '页，正在逐张下载），请长按保存或用文件管理器查看') : '图片已生成，请长按保存或以文件方式打开', 'success');
+      // 展示图片预览，由用户在新的用户手势下长按保存或点击批量保存（移动端最稳，不受下载API限制）
+      openExportPreview(imgData, baseName);
+      showToast('图片已生成', 'success');
 
       // 导出成功 → 启用提交按钮
       wordExported = true;
@@ -1631,6 +1628,71 @@ function exportImage() {
       showToast('图片生成失败，请重试', 'error');
       console.error(err);
     });
+}
+
+// ========== 图片预览弹窗：展示生成的A4图片，供长按保存或批量下载 ==========
+function openExportPreview(imgData, baseName) {
+  var old = document.getElementById('exportImgModal');
+  if (old) old.parentNode.removeChild(old);
+
+  var modal = document.createElement('div');
+  modal.id = 'exportImgModal';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.9);z-index:999999;display:flex;flex-direction:column;';
+
+  var head = document.createElement('div');
+  head.style.cssText = 'background:#fff;padding:12px 16px;text-align:center;font-size:15px;color:#065f46;font-weight:600;box-shadow:0 2px 8px rgba(0,0,0,.2);flex:0 0 auto;';
+  head.textContent = imgData.length > 1 ? ('员工个人发展计划表（共' + imgData.length + '页）') : '员工个人发展计划表';
+
+  var body = document.createElement('div');
+  body.style.cssText = 'flex:1 1 auto;overflow:auto;-webkit-overflow-scrolling:touch;padding:12px;';
+  var tip = document.createElement('div');
+  tip.style.cssText = 'padding:8px 12px;margin-bottom:10px;background:#fef3c7;border:1px solid #fcd34d;color:#92400e;font-size:13px;border-radius:8px;line-height:1.6;';
+  tip.innerHTML = '请在手机上<b>长按图片保存到相册</b>（多页请逐张长按保存）；如需批量下载，点底部<b>保存全部图片</b>。';
+  body.appendChild(tip);
+
+  imgData.forEach(function(src, i) {
+    var pageLabel = document.createElement('div');
+    if (imgData.length > 1) {
+      pageLabel.textContent = '第' + (i + 1) + '页 / 共' + imgData.length + '页';
+      pageLabel.style.cssText = 'color:#fff;font-size:12px;margin:0 0 4px;text-align:center;';
+      body.appendChild(pageLabel);
+    }
+    var img = document.createElement('img');
+    img.src = src;
+    img.style.cssText = 'width:100%;max-width:360px;border:2px solid #fff;border-radius:6px;background:#fff;margin:0 0 14px;display:block;';
+    body.appendChild(img);
+  });
+
+  var foot = document.createElement('div');
+  foot.style.cssText = 'background:#fff;padding:12px 16px;display:flex;gap:10px;box-shadow:0 -2px 8px rgba(0,0,0,.2);flex:0 0 auto;';
+  var btnSave = document.createElement('button');
+  btnSave.textContent = imgData.length > 1 ? ('保存全部图片（' + imgData.length + '页）') : '保存图片';
+  btnSave.style.cssText = 'flex:1;padding:12px;background:#0891b2;color:#fff;border:none;border-radius:8px;font-size:15px;font-weight:600;';
+  btnSave.onclick = function() {
+    imgData.forEach(function(src2, idx) {
+      setTimeout(function() {
+        var a = document.createElement('a');
+        a.href = src2;
+        a.download = imgData.length > 1 ? (baseName + '_第' + (idx + 1) + '页.png') : (baseName + '.png');
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+      }, 250 * (idx + 1));
+    });
+  };
+  var btnClose = document.createElement('button');
+  btnClose.textContent = '关闭';
+  btnClose.style.cssText = 'padding:12px 20px;background:#e5e7eb;color:#111;border:none;border-radius:8px;font-size:15px;';
+  btnClose.onclick = function() {
+    if (modal.parentNode) modal.parentNode.removeChild(modal);
+  };
+  foot.appendChild(btnSave);
+  foot.appendChild(btnClose);
+
+  modal.appendChild(head);
+  modal.appendChild(body);
+  modal.appendChild(foot);
+  document.body.appendChild(modal);
 }
 
 // 启动
