@@ -879,12 +879,12 @@ let wordExported = false;
 
 // ========== 初始化 ==========
 function init() {
-  // 手机端：导出方式为"生成PDF/打印"，切换按钮与提示文案
+  // 手机端：导出方式为"生成图片/保存"，切换按钮与提示文案
   if (/Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
     var eb = document.getElementById('exportWordBtn');
-    if (eb) { var sp = eb.querySelector('span'); if (sp) sp.textContent = '生成PDF/打印'; }
+    if (eb) { var sp = eb.querySelector('span'); if (sp) sp.textContent = '生成图片/保存'; }
     var sh = document.getElementById('submitHint');
-    if (sh) sh.innerHTML = '第一步：点击「生成PDF/打印」生成文档<br>第二步：导出成功后，点击「提交」完成填报';
+    if (sh) sh.innerHTML = '第一步：点击「生成图片/保存」生成图片<br>第二步：导出成功后，点击「提交」完成填报';
   }
   loadDepartments();
   bindEvents();
@@ -1467,11 +1467,11 @@ function exportWord() {
   // 移动端检测
   var isMobileDevice = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 
-  // 手机端：系统无法识别HTML格式.doc，改用浏览器打印/保存为PDF（所有手机原生支持，零卡顿）
+  // 手机端：生成 A4 图片保存（不依赖打印窗口，避免部分浏览器拦截/不支持）
   if (isMobileDevice) {
-    showToast('正在打开文档，请使用打印/保存为PDF...', 'info');
-    exportPrint();
-    return; // 打印对话框关闭后统一启用提交按钮
+    showToast('正在生成图片，请稍候...', 'info');
+    exportImage();
+    return; // 图片生成成功回调内统一启用提交按钮
   }
 
   // 桌面端：下载可编辑 .doc 文档
@@ -1500,8 +1500,8 @@ function exportWord() {
   }
 }
 
-// ========== 手机端导出（调用浏览器打印/另存为PDF，原生支持，不依赖第三方库） ==========
-function exportPrint() {
+// ========== 手机端导出：生成 A4 图片保存（渲染缩放=1，降低手机内存占用，稳定） ==========
+function exportImage() {
   if (!validateForm()) return;
 
   const name = document.getElementById('name').value || '　';
@@ -1536,61 +1536,101 @@ function exportPrint() {
     projectRow = '<tr><td class="lbl">项目名称</td><td colspan="3">' + escapeHtml(projectName) + '</td></tr>';
   }
 
-  // 注入打印样式（一次性）
-  if (!document.getElementById('printDocStyle')) {
-    var st = document.createElement('style');
-    st.id = 'printDocStyle';
-    st.textContent =
-      '#printDoc{display:none;font-family:宋体,SimSun,"Microsoft YaHei",sans-serif;font-size:11pt;color:#000;line-height:1.5;}' +
-      '#printDoc .pdoc-title{text-align:center;font-size:16pt;font-weight:bold;font-family:黑体,SimHei;margin:0 0 10mm;padding:0 0 3mm;border-bottom:2px solid #333;}' +
-      '#printDoc table{width:100%;border-collapse:collapse;table-layout:fixed;word-wrap:break-word;}' +
-      '#printDoc .plbl{font-weight:bold;background:#f0f0f0 !important;text-align:center;-webkit-print-color-adjust:exact;print-color-adjust:exact;}' +
-      '#printDoc table td{border:0.5pt solid #333;padding:4px 6px;vertical-align:top;line-height:1.4;word-wrap:break-word;overflow-wrap:break-word;}' +
-      'body.printing > *:not(#printDoc){display:none !important;}' +
-      '@media print{@page{size:A4 portrait;margin:15mm 12mm;}#printDoc{display:block !important;}}';
-    document.head.appendChild(st);
-  }
-
-  // 把 A4 文档填入打印容器（不另开新窗口，避免被弹窗拦截，所有手机原生支持）
   const dateStr = new Date().getFullYear() + '-' + String(new Date().getMonth()+1).padStart(2,'0') + '-' + String(new Date().getDate()).padStart(2,'0');
-  var docEl = document.getElementById('printDoc');
-  if (!docEl) { docEl = document.createElement('div'); docEl.id = 'printDoc'; document.body.appendChild(docEl); }
-  docEl.innerHTML =
-    '<div class="pdoc-title">员工个人发展计划表</div>' +
-    '<table>' +
-    '<tbody style="page-break-inside:avoid;"><tr><td class="plbl" style="width:60px;">姓名</td><td style="width:38%;">' + escapeHtml(name) + '</td><td class="plbl" style="width:60px;">部门</td><td>' + escapeHtml(dept) + '</td></tr>' + projectRow + '</tbody>' +
-    '<tbody style="page-break-inside:avoid;"><tr><td class="plbl">自我评判</td><td colspan="3">' + escapeHtml(selfEval).replace(/\n/g,'<br>') + '</td></tr>' +
-    '<tr><td class="plbl">发展路径</td><td colspan="3">' + escapeHtml(devPath) + '</td></tr>' + goalsHtml + '</tbody>' +
-    '<tbody style="page-break-inside:avoid;"><tr><td class="plbl">部门负责人<br>审核意见</td><td colspan="3" style="min-height:50px;">　</td></tr>' +
-    '<tr><td class="plbl">负责人签字</td><td>　</td><td class="plbl">日期</td><td>　</td></tr></tbody>' +
-    '<tbody style="page-break-inside:avoid;"><tr><td class="plbl">公司意见</td><td colspan="3" style="min-height:50px;">　</td></tr>' +
-    '<tr><td class="plbl">签字</td><td>　</td><td class="plbl">日期</td><td>　</td></tr></tbody>' +
+
+  const content = document.createElement('div');
+  content.setAttribute('data-export-img', '1');
+  content.style.cssText = 'width:780px;padding:20px;font-family:宋体,SimSun;font-size:10.5pt;color:#000;line-height:1.5;background:#fff;box-sizing:border-box;';
+  content.innerHTML =
+    '<div class="doc-title" style="text-align:center;font-size:16pt;font-weight:bold;margin:0 0 12pt;padding:0 0 6pt;border-bottom:2px solid #333;font-family:黑体,SimHei;">员工个人发展计划表</div>' +
+    '<table style="width:100%;border-collapse:collapse;table-layout:fixed;word-wrap:break-word;">' +
+    '<tbody style="page-break-inside:avoid;"><tr><td class="lbl" style="width:60px;">姓名</td><td style="width:38%;">' + escapeHtml(name) + '</td><td class="lbl" style="width:60px;">部门</td><td>' + escapeHtml(dept) + '</td></tr>' + projectRow + '</tbody>' +
+    '<tbody style="page-break-inside:avoid;"><tr><td class="lbl">自我评判</td><td colspan="3">' + escapeHtml(selfEval).replace(/\n/g,'<br>') + '</td></tr>' +
+    '<tr><td class="lbl">发展路径</td><td colspan="3">' + escapeHtml(devPath) + '</td></tr>' + goalsHtml + '</tbody>' +
+    '<tbody style="page-break-inside:avoid;"><tr><td class="lbl">部门负责人<br>审核意见</td><td colspan="3" style="min-height:50px;">　</td></tr>' +
+    '<tr><td class="lbl">负责人签字</td><td>　</td><td class="lbl">日期</td><td>　</td></tr></tbody>' +
+    '<tbody style="page-break-inside:avoid;"><tr><td class="lbl">公司意见</td><td colspan="3" style="min-height:50px;">　</td></tr>' +
+    '<tr><td class="lbl">签字</td><td>　</td><td class="lbl">日期</td><td>　</td></tr></tbody>' +
     '</table>' +
     '<div style="text-align:center;font-size:8pt;color:#666;border-top:0.5pt solid #ccc;padding-top:3mm;margin-top:6mm;">打印日期：' + dateStr + '</div>';
 
-  showToast('已生成文档，正在打开打印窗口...', 'info');
+  // 放到可见屏幕外（而非隐藏），确保 html2canvas 可渲染出完整高度；随后移除
+  document.body.appendChild(content);
+  content.style.position = 'absolute';
+  content.style.left = '-9999px';
+  content.style.top = '0';
+  content.style.zIndex = '99999';
 
-  // 打开系统打印对话框。注意：必须同步直接调用 window.print()，
-  // 不能加 setTimeout —— iOS Safari 在延时的回调里丢失"用户手势"上下文，不会弹出打印对话框
-  function endPrint() {
-    document.body.classList.remove('printing');
-    window.removeEventListener('afterprint', endPrint);
-  }
-  window.addEventListener('afterprint', endPrint);
-  document.body.classList.add('printing');
-  window.print();
+  showToast('正在生成图片，请稍候...', 'info');
 
-  // 视为已导出，启用提交按钮
-  wordExported = true;
-  var sBtn = document.getElementById('submitBtn');
-  if (sBtn) { sBtn.disabled = false; sBtn.style.opacity = ''; sBtn.style.cursor = ''; }
-  var sHint = document.getElementById('submitHint');
-  if (sHint) {
-    sHint.innerHTML = '已生成文档！请务必点击「提交」完成填报';
-    sHint.style.background = '#d1fae5';
-    sHint.style.borderColor = '#6ee7b7';
-    sHint.style.color = '#065f46';
-  }
+  html2canvas(content, { scale: 1, useCORS: true, backgroundColor: '#ffffff', logging: false, removeContainer: true })
+    .then(function(canvas) {
+      // 先测量不可拆分块（标题 + 各 tbody 分组）
+      var scale = canvas.width / (content.offsetWidth || 780);
+      var blocks = [];
+      var titleEl = content.querySelector('.doc-title');
+      var cursor = 0;
+      if (titleEl) { blocks.push({ top: 0, h: titleEl.offsetHeight }); cursor = titleEl.offsetHeight; }
+      content.querySelectorAll('tbody').forEach(function(tb) {
+        blocks.push({ top: cursor, h: tb.offsetHeight });
+        cursor += tb.offsetHeight;
+      });
+
+      // 按 A4 比例(210:297)贪心分页，页边界只落在块之间 → 审核组、公司意见组不会被拆开
+      var pageH = Math.round(canvas.width * (297 / 210));
+      var pageBudget = pageH / scale;
+      var pages = [];
+      var bi = 0;
+      while (bi < blocks.length) {
+        var pStartY = blocks[bi].top;
+        var endY = pStartY + blocks[bi].h;
+        var k = bi;
+        while (k + 1 < blocks.length && (blocks[k+1].top + blocks[k+1].h - pStartY) <= pageBudget) {
+          endY = blocks[k+1].top + blocks[k+1].h;
+          k++;
+        }
+        pages.push({ top: pStartY * scale, height: (endY - pStartY) * scale });
+        bi = k + 1;
+      }
+      var totalPages = pages.length;
+      var baseName = '员工个人发展计划表_' + name;
+
+      for (var pi = 0; pi < totalPages; pi++) {
+        (function(idx) {
+          var pg = document.createElement('canvas');
+          pg.width = canvas.width;
+          pg.height = pageH;
+          var ctx = pg.getContext('2d');
+          ctx.fillStyle = '#ffffff';
+          ctx.fillRect(0, 0, pg.width, pg.height);
+          ctx.drawImage(canvas, 0, pages[idx].top, canvas.width, Math.min(pages[idx].height, pageH), 0, 0, canvas.width, Math.min(pages[idx].height, pageH));
+          var link = document.createElement('a');
+          link.download = totalPages > 1 ? baseName + '_第' + (idx+1) + '页.png' : baseName + '.png';
+          link.href = pg.toDataURL('image/png');
+          document.body.appendChild(link);
+          setTimeout(function() { link.click(); document.body.removeChild(link); }, 200 * (idx + 1));
+        })(pi);
+      }
+      if (content.parentNode) content.parentNode.removeChild(content);
+
+      showToast(totalPages > 1 ? ('图片已生成（共' + totalPages + '页，正在逐张下载），请长按保存或用文件管理器查看') : '图片已生成，请长按保存或以文件方式打开', 'success');
+
+      // 导出成功 → 启用提交按钮
+      wordExported = true;
+      var sBtn = document.getElementById('submitBtn');
+      if (sBtn) { sBtn.disabled = false; sBtn.style.opacity = ''; sBtn.style.cursor = ''; }
+      var sHint = document.getElementById('submitHint');
+      if (sHint) {
+        sHint.innerHTML = '已生成图片！请务必点击「提交」完成填报';
+        sHint.style.background = '#d1fae5';
+        sHint.style.borderColor = '#6ee7b7';
+        sHint.style.color = '#065f46';
+      }
+    }).catch(function(err) {
+      if (content.parentNode) content.parentNode.removeChild(content);
+      showToast('图片生成失败，请重试', 'error');
+      console.error(err);
+    });
 }
 
 // 启动
