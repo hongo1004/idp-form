@@ -5,7 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
 <title>员工个人发展计划填报</title>
 <script src="https://cdn.tailwindcss.com"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <style>
   :root {
     --primary: #1e3a5f;
@@ -1175,7 +1174,7 @@ function addGoal() {
       </div>
       <div>
         <label class="form-label required-mark">目标达成时间</label>
-        <input type="text" class="form-input goal-date" placeholder="如：2025年下半年、2026年、1-2年内" oninput="updatePreview()" required>
+        <input type="text" class="form-input goal-date" placeholder="如：2026年下半年、2027年、1-2年内" oninput="updatePreview()" required>
       </div>
       <div>
         <label class="form-label required-mark">初步实施计划</label>
@@ -1625,93 +1624,182 @@ function exportImage() {
 
   const dateStr = new Date().getFullYear() + '-' + String(new Date().getMonth()+1).padStart(2,'0') + '-' + String(new Date().getDate()).padStart(2,'0');
 
-  const content = document.createElement('div');
-  content.setAttribute('data-export-img', '1');
-  content.style.cssText = 'width:780px;padding:20px;font-family:宋体,SimSun;font-size:10.5pt;color:#000;line-height:1.5;background:#fff;box-sizing:border-box;';
-  content.innerHTML =
-    '<div class="doc-title" style="text-align:center;font-size:16pt;font-weight:bold;margin:0 0 12pt;padding:0 0 6pt;border-bottom:2px solid #333;font-family:黑体,SimHei;">员工个人发展计划表</div>' +
-    '<table style="width:100%;border-collapse:collapse;table-layout:fixed;word-wrap:break-word;">' +
-    '<tbody style="page-break-inside:avoid;"><tr><td class="lbl" style="width:60px;">姓名</td><td style="width:38%;">' + escapeHtml(name) + '</td><td class="lbl" style="width:60px;">部门</td><td>' + escapeHtml(dept) + '</td></tr>' + projectRow + '</tbody>' +
-    '<tbody style="page-break-inside:avoid;"><tr><td class="lbl">自我评判</td><td colspan="3">' + escapeHtml(selfEval).replace(/\n/g,'<br>') + '</td></tr>' +
-    '<tr><td class="lbl">发展路径</td><td colspan="3">' + escapeHtml(devPath) + '</td></tr>' + goalsHtml + '</tbody>' +
-    '<tbody style="page-break-inside:avoid;"><tr><td class="lbl">部门负责人<br>审核意见</td><td colspan="3" style="min-height:50px;">　</td></tr>' +
-    '<tr><td class="lbl">负责人签字</td><td>　</td><td class="lbl">日期</td><td>　</td></tr></tbody>' +
-    '<tbody style="page-break-inside:avoid;"><tr><td class="lbl">公司意见</td><td colspan="3" style="min-height:50px;">　</td></tr>' +
-    '<tr><td class="lbl">签字</td><td>　</td><td class="lbl">日期</td><td>　</td></tr></tbody>' +
-    '</table>' +
-    '<div style="text-align:center;font-size:8pt;color:#666;border-top:0.5pt solid #ccc;padding-top:3mm;margin-top:6mm;">打印日期：' + dateStr + '</div>';
-
-  // 放到可见屏幕外（而非隐藏），确保 html2canvas 可渲染出完整高度；随后移除
-  document.body.appendChild(content);
-  content.style.position = 'absolute';
-  content.style.left = '-9999px';
-  content.style.top = '0';
-  content.style.zIndex = '99999';
-
+  // 原生 canvas 绘制 A4 表格（不依赖任何外部库，任何网络均可用；避免 html2canvas CDN 加载失败）
   showToast('正在生成图片，请稍候...', 'info');
 
-  html2canvas(content, { scale: 1, useCORS: true, backgroundColor: '#ffffff', logging: false, removeContainer: true })
-    .then(function(canvas) {
-      // 先测量不可拆分块（标题 + 各 tbody 分组）
-      var scale = canvas.width / (content.offsetWidth || 780);
-      var blocks = [];
-      var titleEl = content.querySelector('.doc-title');
-      var cursor = 0;
-      if (titleEl) { blocks.push({ top: 0, h: titleEl.offsetHeight }); cursor = titleEl.offsetHeight; }
-      content.querySelectorAll('tbody').forEach(function(tb) {
-        blocks.push({ top: cursor, h: tb.offsetHeight });
-        cursor += tb.offsetHeight;
-      });
+  try {
+    var imgData = drawA4PlanToImages({ name: name, dept: dept, projectName: projectName, selfEval: selfEval, devPath: devPath, goals: goals, dateStr: dateStr });
+    if (!imgData || imgData.length === 0) { showToast('图片生成失败，请重试', 'error'); return; }
 
-      // 按 A4 比例(210:297)贪心分页，页边界只落在块之间 → 审核组、公司意见组不会被拆开
-      var pageH = Math.round(canvas.width * (297 / 210));
-      var pageBudget = pageH / scale;
-      var pages = [];
-      var bi = 0;
-      while (bi < blocks.length) {
-        var pStartY = blocks[bi].top;
-        var endY = pStartY + blocks[bi].h;
-        var k = bi;
-        while (k + 1 < blocks.length && (blocks[k+1].top + blocks[k+1].h - pStartY) <= pageBudget) {
-          endY = blocks[k+1].top + blocks[k+1].h;
-          k++;
-        }
-        pages.push({ top: pStartY * scale, height: (endY - pStartY) * scale });
-        bi = k + 1;
+    // 展示图片预览，由用户在新的用户手势下长按保存或点击批量保存（移动端最稳，不受下载API限制）
+    var baseName = '员工个人发展计划表_' + name;
+    openExportPreview(imgData, baseName);
+    showToast('图片已生成', 'success');
+
+    // 提交已在前完成 → 仅更新提示
+    var sHint = document.getElementById('submitHint');
+    if (sHint) {
+      sHint.innerHTML = '图片已生成，可保存 / 打印后提交纸质版';
+      sHint.style.background = '#d1fae5';
+      sHint.style.borderColor = '#6ee7b7';
+      sHint.style.color = '#065f46';
+    }
+  } catch(e) {
+    showToast('图片生成失败，请重试', 'error');
+    console.error(e);
+  }
+}
+
+// ========== 原生 canvas 绘制 A4 文档图片（手机端导出，不依赖任何外部库） ==========
+function drawA4PlanToImages(data) {
+  var W = 780, pad = 22, colL = 80;
+  var innerW = W - 2 * pad;
+  var valW = (innerW - 2 * colL) / 2;   // span1 值列宽
+  var spanW = innerW - colL;            // colspan3 值宽
+  var PAGE_H = Math.round(W * 297 / 210); // A4 高度
+  var topPad = 46, bottomPad = 46;
+  var usable = PAGE_H - topPad - bottomPad;
+  var FONT = '14px 宋体, SimSun', FONT_B = 'bold 14px 宋体, SimSun';
+  var lineH = 19, vpad = 9;
+
+  var M = document.createElement('canvas').getContext('2d');
+  M.font = FONT;
+
+  function lines(text, maxW) {
+    var txt = String(text == null ? '' : text);
+    var out = [];
+    txt.split('\n').forEach(function(seg) {
+      var cur = '';
+      for (var i = 0; i < seg.length; i++) {
+        var ch = seg[i];
+        if (M.measureText(cur + ch).width > (maxW - 6) && cur) { out.push(cur); cur = ch; }
+        else { cur += ch; }
       }
-      var totalPages = pages.length;
-      var baseName = '员工个人发展计划表_' + name;
-      var imgData = [];
-
-      for (var pi = 0; pi < totalPages; pi++) {
-        var pg = document.createElement('canvas');
-        pg.width = canvas.width;
-        pg.height = pageH;
-        var ctx = pg.getContext('2d');
-        ctx.fillStyle = '#ffffff';
-        ctx.fillRect(0, 0, pg.width, pg.height);
-        ctx.drawImage(canvas, 0, pages[pi].top, canvas.width, Math.min(pages[pi].height, pageH), 0, 0, canvas.width, Math.min(pages[pi].height, pageH));
-        imgData.push(pg.toDataURL('image/png'));
-      }
-      if (content.parentNode) content.parentNode.removeChild(content);
-
-      // 展示图片预览，由用户在新的用户手势下长按保存或点击批量保存（移动端最稳，不受下载API限制）
-      openExportPreview(imgData, baseName);
-      showToast('图片已生成', 'success');
-
-      // 导出成功（提交已在前完成）→ 仅更新提示
-      var sHint = document.getElementById('submitHint');
-      if (sHint) {
-        sHint.innerHTML = '图片已生成，可保存 / 打印后提交纸质版';
-        sHint.style.background = '#d1fae5';
-        sHint.style.borderColor = '#6ee7b7';
-        sHint.style.color = '#065f46';
-      }
-    }).catch(function(err) {
-      if (content.parentNode) content.parentNode.removeChild(content);
-      showToast('图片生成失败，请重试', 'error');
-      console.error(err);
+      if (cur) out.push(cur);
     });
+    if (out.length === 0) out.push('');
+    return out;
+  }
+  function cellWidth(c) {
+    if (c.l) return colL;
+    if (c.span === 3) return spanW;
+    return valW;
+  }
+  function rowH(cells, min) {
+    var maxL = 1;
+    cells.forEach(function(c) {
+      var w = cellWidth(c) - 8;
+      if (c.t != null && c.t !== '') maxL = Math.max(maxL, lines(c.t, w).length);
+    });
+    return Math.max(min || 0, maxL * lineH + vpad * 2);
+  }
+
+  var rows = [];
+  // 标题（只画在第1页顶部）
+  rows.push({ title: 1, cells: [{ t: '员工个人发展计划表', center: 1, span: 4 }], h: 48 });
+  // 基本信息
+  rows.push({ cells: [{ t: '姓名', l: 1 }, { t: data.name }, { t: '部门', l: 1 }, { t: data.dept }] });
+  if (data.dept === '监理项目部') rows.push({ cells: [{ t: '项目名称', l: 1, span: 1 }, { t: data.projectName, span: 3 }] });
+  rows.push({ cells: [{ t: '自我评判', l: 1, span: 1 }, { t: data.selfEval, span: 3 }] });
+  rows.push({ cells: [{ t: '发展路径', l: 1, span: 1 }, { t: data.devPath, span: 3 }] });
+
+  // 发展目标
+  if (data.goals && data.goals.length) {
+    rows.push({ cells: [{ t: '发展目标', l: 1, span: 1 }, { t: '序号 | 目标类别 | 目标描述', span: 3, gray: 1 }] });
+    data.goals.forEach(function(g, i) {
+      rows.push({ cells: [{ t: (i + 1) + '.', l: 1, span: 1 }, { t: (g.category || '') + (g.description ? ' ｜ ' + g.description : ''), span: 3 }] });
+      rows.push({ cells: [{ t: '达成时间', l: 1, span: 1 }, { t: g.date || '', span: 3 }] });
+      rows.push({ cells: [{ t: '实施计划', l: 1, span: 1 }, { t: g.plan || '', span: 3 }] });
+    });
+  } else {
+    rows.push({ cells: [{ t: '发展目标', l: 1, span: 1 }, { t: '　', span: 3 }] });
+  }
+
+  // 部门负责人审核组（keep=1，整体不拆开）
+  rows.push({ keep: 1, cells: [{ t: '部门负责人\n审核意见', l: 1, span: 1 }, { t: '', span: 3 }], minH: 56 });
+  rows.push({ keep: 1, cells: [{ t: '负责人签字', l: 1 }, { t: '' }, { t: '日期', l: 1 }, { t: '' }] });
+  // 公司意见组（keep=2，整体不拆开）
+  rows.push({ keep: 2, cells: [{ t: '公司意见', l: 1, span: 1 }, { t: '', span: 3 }], minH: 56 });
+  rows.push({ keep: 2, cells: [{ t: '签字', l: 1 }, { t: '' }, { t: '日期', l: 1 }, { t: '' }] });
+  // 页脚
+  rows.push({ foot: 1, cells: [{ t: '打印日期：' + data.dateStr, center: 1, span: 4, gray: 1 }], h: 34 });
+
+  rows.forEach(function(r) { r.h = r.h || rowH(r.cells, r.minH || 0); });
+  function blockH(block) { var s = 0; block.forEach(function(r) { s += r.h; }); return s; }
+
+  // 分块：有 keep 标记的行与它前面紧随的内容组成块，审核组/公司意见组绝不跨页拆开
+  var blocks = [];
+  var cur = [];
+  rows.forEach(function(r) {
+    cur.push(r);
+    if (r.keep) { blocks.push(cur); cur = []; }
+  });
+  if (cur.length) blocks.push(cur);
+
+  // 分页
+  var pages = [];
+  var pageRows = [];
+  var used = 0;
+  blocks.forEach(function(blk) {
+    var bh = blockH(blk);
+    if (pageRows.length && (used + bh) > usable) { pages.push(pageRows); pageRows = []; used = 0; }
+    if (pageRows.length === 0) used = 0;
+    pageRows = pageRows.concat(blk);
+    used += bh;
+  });
+  if (pageRows.length) pages.push(pageRows);
+
+  // 逐页绘制并输出 png
+  var out = [];
+  pages.forEach(function(pr, pi) {
+    var c = document.createElement('canvas');
+    c.width = W; c.height = PAGE_H;
+    var x = c.getContext('2d');
+    x.fillStyle = '#ffffff'; x.fillRect(0, 0, W, PAGE_H);
+    x.font = FONT; x.textBaseline = 'middle'; x.textAlign = 'left';
+    var y = topPad;
+    pr.forEach(function(r) {
+      var h = r.h, rowY = y;
+      var cx = pad;
+      var isTitle = r.title && pi === 0;
+      r.cells.forEach(function(cc) {
+        var w = cellWidth(cc);
+        if (r.title && isTitle) {
+          x.fillStyle = '#ffffff';
+          x.fillRect(cx, rowY, w, h);
+          x.fillStyle = '#000';
+          x.font = 'bold 22px 黑体, SimHei';
+          x.textAlign = 'center';
+          x.fillText(cc.t, cx + w / 2, rowY + h / 2);
+          x.font = FONT;
+          x.strokeStyle = '#000'; x.lineWidth = 2;
+          x.beginPath(); x.moveTo(cx, rowY + h - 1); x.lineTo(cx + w, rowY + h - 1); x.stroke();
+          x.lineWidth = 1; x.textAlign = 'left';
+        } else if (r.foot) {
+          x.strokeRect(cx, rowY, w, h);
+          x.fillStyle = '#000'; x.font = FONT;
+          x.textAlign = 'center';
+          x.fillText(cc.t, cx + w / 2, rowY + h / 2);
+          x.font = FONT; x.textAlign = 'left';
+        } else {
+          x.strokeStyle = cc.gray ? '#bbb' : '#000';
+          x.strokeRect(cx, rowY, w, h);
+          x.fillStyle = '#000';
+          x.font = cc.l ? FONT_B : FONT;
+          var txt = cc.t == null ? '' : String(cc.t);
+          var lns = lines(txt, w - 8);
+          var ty = rowY + h / 2 - ((lns.length - 1) * lineH) / 2;
+          x.textAlign = 'center';
+          lns.forEach(function(ln, li) { x.fillText(ln, cx + w / 2, ty + li * lineH); });
+          x.font = FONT;
+        }
+        cx += w;
+      });
+      y += h;
+    });
+    out.push(c.toDataURL('image/png'));
+  });
+  return out;
 }
 
 // ========== 图片预览弹窗：展示生成的A4图片，供长按保存或批量下载 ==========
