@@ -1650,17 +1650,19 @@ function exportImage() {
   }
 }
 
-// ========== 原生 canvas 绘制 A4 文档图片（手机端导出，不依赖任何外部库） ==========
+// ========== 原生 canvas 绘制 A4 文档图片（手机端导出，版式对齐电脑端 Word，不依赖外部库） ==========
 function drawA4PlanToImages(data) {
-  var W = 780, pad = 22, colL = 80;
+  var W = 780, pad = 22, colL = 86;          // 侧标签列宽（对应 Word 的 side 10%）
   var innerW = W - 2 * pad;
-  var valW = (innerW - 2 * colL) / 2;   // span1 值列宽
-  var spanW = innerW - colL;            // colspan3 值宽
-  var PAGE_H = Math.round(W * 297 / 210); // A4 高度
-  var topPad = 46, bottomPad = 46;
+  var valW = (innerW - 2 * colL) / 2;        // 普通值列
+  var spanW = innerW - colL;                 // colspan3 值宽
+  var seqW = 34, catW = 110, descW = spanW - seqW - catW; // 发展目标三列
+  var PAGE_H = Math.round(W * 297 / 210);
+  var topPad = 54, bottomPad = 46;
   var usable = PAGE_H - topPad - bottomPad;
-  var FONT = '14px 宋体, SimSun', FONT_B = 'bold 14px 宋体, SimSun';
-  var lineH = 19, vpad = 9;
+  var FONT = '14px 宋体, SimSun', FONTB = 'bold 14px 宋体, SimSun', FONTT = 'bold 30px 黑体, SimHei';
+  var LABELBG = '#f0f0f0';
+  var lineH = 20, vpad = 11;
 
   var M = document.createElement('canvas').getContext('2d');
   M.font = FONT;
@@ -1672,7 +1674,7 @@ function drawA4PlanToImages(data) {
       var cur = '';
       for (var i = 0; i < seg.length; i++) {
         var ch = seg[i];
-        if (M.measureText(cur + ch).width > (maxW - 6) && cur) { out.push(cur); cur = ch; }
+        if (M.measureText(cur + ch).width > (maxW - 8) && cur) { out.push(cur); cur = ch; }
         else { cur += ch; }
       }
       if (cur) out.push(cur);
@@ -1680,66 +1682,73 @@ function drawA4PlanToImages(data) {
     if (out.length === 0) out.push('');
     return out;
   }
-  function cellWidth(c) {
+  function rw(c) {
     if (c.l) return colL;
     if (c.span === 3) return spanW;
     return valW;
   }
-  function rowH(cells, min) {
+  function rh(cells, min) {
     var maxL = 1;
     cells.forEach(function(c) {
-      var w = cellWidth(c) - 8;
+      var w = rw(c) - 8;
       if (c.t != null && c.t !== '') maxL = Math.max(maxL, lines(c.t, w).length);
     });
     return Math.max(min || 0, maxL * lineH + vpad * 2);
   }
 
   var rows = [];
-  // 标题（只画在第1页顶部）
-  rows.push({ title: 1, cells: [{ t: '员工个人发展计划表', center: 1, span: 4 }], h: 48 });
-  // 基本信息
-  rows.push({ cells: [{ t: '姓名', l: 1 }, { t: data.name }, { t: '部门', l: 1 }, { t: data.dept }] });
-  if (data.dept === '监理项目部') rows.push({ cells: [{ t: '项目名称', l: 1, span: 1 }, { t: data.projectName, span: 3 }] });
-  rows.push({ cells: [{ t: '自我评判', l: 1, span: 1 }, { t: data.selfEval, span: 3 }] });
-  rows.push({ cells: [{ t: '发展路径', l: 1, span: 1 }, { t: data.devPath, span: 3 }] });
+  rows.push({ kind: 'title', h: 52 });
+  rows.push({ kind: 'row', cells: [{ t: '姓名', l: 1 }, { t: data.name }, { t: '部门', l: 1 }, { t: data.dept }] });
+  if (data.dept === '监理项目部') rows.push({ kind: 'row', cells: [{ t: '项目名称', l: 1, span: 1 }, { t: data.projectName, span: 3 }] });
+  rows.push({ kind: 'row', cells: [{ t: '自我评判', l: 1, span: 1 }, { t: data.selfEval, span: 3 }], minH: 56 });
+  rows.push({ kind: 'row', cells: [{ t: '发展路径', l: 1, span: 1 }, { t: data.devPath, span: 3 }] });
 
-  // 发展目标
+  // 发展目标：rowspan 左列 + 序号/类别/描述三列
   if (data.goals && data.goals.length) {
-    rows.push({ cells: [{ t: '发展目标', l: 1, span: 1 }, { t: '序号 | 目标类别 | 目标描述', span: 3, gray: 1 }] });
+    rows.push({ kind: 'goalHead', h: 26 });
     data.goals.forEach(function(g, i) {
-      rows.push({ cells: [{ t: (i + 1) + '.', l: 1, span: 1 }, { t: (g.category || '') + (g.description ? ' ｜ ' + g.description : ''), span: 3 }] });
-      rows.push({ cells: [{ t: '达成时间', l: 1, span: 1 }, { t: g.date || '', span: 3 }] });
-      rows.push({ cells: [{ t: '实施计划', l: 1, span: 1 }, { t: g.plan || '', span: 3 }] });
+      rows.push({ kind: 'goalRow', cells: [
+        { t: (i + 1) + '', w: seqW },
+        { t: g.category || '', w: catW },
+        { t: g.description || '', w: descW }
+      ] });
+      rows.push({ kind: 'row', cells: [{ t: '达成时间', l: 1, span: 1 }, { t: g.date || '', span: 3 }] });
+      rows.push({ kind: 'row', cells: [{ t: '实施计划', l: 1, span: 1 }, { t: g.plan || '', span: 3 }] });
     });
   } else {
-    rows.push({ cells: [{ t: '发展目标', l: 1, span: 1 }, { t: '　', span: 3 }] });
+    rows.push({ kind: 'row', cells: [{ t: '发展目标', l: 1, span: 1 }, { t: '', span: 3 }], minH: 56 });
   }
 
-  // 部门负责人审核组（keep=1，整体不拆开）
-  rows.push({ keep: 1, cells: [{ t: '部门负责人\n审核意见', l: 1, span: 1 }, { t: '', span: 3 }], minH: 56 });
-  rows.push({ keep: 1, cells: [{ t: '负责人签字', l: 1 }, { t: '' }, { t: '日期', l: 1 }, { t: '' }] });
-  // 公司意见组（keep=2，整体不拆开）
-  rows.push({ keep: 2, cells: [{ t: '公司意见', l: 1, span: 1 }, { t: '', span: 3 }], minH: 56 });
-  rows.push({ keep: 2, cells: [{ t: '签字', l: 1 }, { t: '' }, { t: '日期', l: 1 }, { t: '' }] });
-  // 页脚
-  rows.push({ foot: 1, cells: [{ t: '打印日期：' + data.dateStr, center: 1, span: 4, gray: 1 }], h: 34 });
+  // 部门负责人审核组（keep=1 整体不拆）
+  rows.push({ keep: 1, kind: 'row', cells: [{ t: '部门负责人\n审核意见', l: 1, span: 1 }, { t: '', span: 3 }], minH: 56 });
+  rows.push({ keep: 1, kind: 'row', cells: [{ t: '负责人签字', l: 1 }, { t: '' }, { t: '日期', l: 1 }, { t: '' }], minH: 30 });
+  // 公司意见组（keep=2 整体不拆）
+  rows.push({ keep: 2, kind: 'row', cells: [{ t: '公司意见', l: 1, span: 1 }, { t: '', span: 3 }], minH: 56 });
+  rows.push({ keep: 2, kind: 'row', cells: [{ t: '签字', l: 1 }, { t: '' }, { t: '日期', l: 1 }, { t: '' }], minH: 30 });
 
-  rows.forEach(function(r) { r.h = r.h || rowH(r.cells, r.minH || 0); });
+  // 计算普通行高度
+  rows.forEach(function(r) {
+    if (r.kind === 'goalHead') r.h = 26;
+    else if (r.kind === 'goalRow') {
+      var hl = lines(r.cells[1].t || '', (r.cells[1].w || catW) - 8);
+      if (r.cells[2].t && r.cells[2].t !== '') hl = Math.max(hl.length, lines(r.cells[2].t, (r.cells[2].w || descW) - 8).length);
+      r.h = hl * lineH + vpad * 2;
+    }
+    else if (r.kind === 'row') r.h = rh(r.cells, r.minH || 0);
+    else r.h = 52;
+  });
   function blockH(block) { var s = 0; block.forEach(function(r) { s += r.h; }); return s; }
 
-  // 分块：有 keep 标记的行与它前面紧随的内容组成块，审核组/公司意见组绝不跨页拆开
-  var blocks = [];
-  var cur = [];
+  // 分块：keep 行及其紧邻前内容成块，审核组/公司意见组绝不跨页
+  var blocks = [], curb = [];
   rows.forEach(function(r) {
-    cur.push(r);
-    if (r.keep) { blocks.push(cur); cur = []; }
+    curb.push(r);
+    if (r.keep) { blocks.push(curb); curb = []; }
   });
-  if (cur.length) blocks.push(cur);
+  if (curb.length) blocks.push(curb);
 
   // 分页
-  var pages = [];
-  var pageRows = [];
-  var used = 0;
+  var pages = [], pageRows = [], used = 0;
   blocks.forEach(function(blk) {
     var bh = blockH(blk);
     if (pageRows.length && (used + bh) > usable) { pages.push(pageRows); pageRows = []; used = 0; }
@@ -1749,7 +1758,23 @@ function drawA4PlanToImages(data) {
   });
   if (pageRows.length) pages.push(pageRows);
 
-  // 逐页绘制并输出 png
+  // 通用画格边框 + 背景 + 居中文本
+  function box(ctx, cx, cy, w, h, t, opts) {
+    opts = opts || {};
+    if (opts.bg) { ctx.fillStyle = opts.bg; ctx.fillRect(cx, cy, w, h); }
+    ctx.strokeStyle = '#000000'; ctx.lineWidth = 1;
+    ctx.strokeRect(cx, cy, w, h);
+    if (t == null || t === '') return;
+    ctx.fillStyle = '#000000';
+    ctx.font = opts.font || FONT;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    var lns = lines(t, w - (opts.padX != null ? opts.padX : 8));
+    var ty = cy + h / 2 - ((lns.length - 1) * lineH) / 2;
+    for (var i = 0; i < lns.length; i++) ctx.fillText(lns[i], cx + w / 2, ty + i * lineH);
+    ctx.font = FONT; ctx.textAlign = 'left';
+  }
+
+  // 逐页绘制
   var out = [];
   pages.forEach(function(pr, pi) {
     var c = document.createElement('canvas');
@@ -1758,45 +1783,75 @@ function drawA4PlanToImages(data) {
     x.fillStyle = '#ffffff'; x.fillRect(0, 0, W, PAGE_H);
     x.font = FONT; x.textBaseline = 'middle'; x.textAlign = 'left';
     var y = topPad;
+    var pending = null; // {top, bottom} 发展目标 rowspan 左列
+    function flushGoal(yEnd) {
+      if (pending) {
+        var gh = yEnd - pending.top;
+        box(x, pad, pending.top, colL, gh, '发展\n目标', { bg: LABELBG, font: FONTB });
+        pending = null;
+      }
+    }
     pr.forEach(function(r) {
-      var h = r.h, rowY = y;
-      var cx = pad;
-      var isTitle = r.title && pi === 0;
-      r.cells.forEach(function(cc) {
-        var w = cellWidth(cc);
-        if (r.title && isTitle) {
-          x.fillStyle = '#ffffff';
-          x.fillRect(cx, rowY, w, h);
-          x.fillStyle = '#000';
-          x.font = 'bold 22px 黑体, SimHei';
-          x.textAlign = 'center';
-          x.fillText(cc.t, cx + w / 2, rowY + h / 2);
-          x.font = FONT;
-          x.strokeStyle = '#000'; x.lineWidth = 2;
-          x.beginPath(); x.moveTo(cx, rowY + h - 1); x.lineTo(cx + w, rowY + h - 1); x.stroke();
-          x.lineWidth = 1; x.textAlign = 'left';
-        } else if (r.foot) {
-          x.strokeRect(cx, rowY, w, h);
-          x.fillStyle = '#000'; x.font = FONT;
-          x.textAlign = 'center';
-          x.fillText(cc.t, cx + w / 2, rowY + h / 2);
-          x.font = FONT; x.textAlign = 'left';
+      var rowY = y;
+      // 标题
+      if (r.kind === 'title' && pi === 0) {
+        flushGoal(rowY);
+        x.fillStyle = '#ffffff'; x.fillRect(pad, rowY, innerW, r.h);
+        x.fillStyle = '#000'; x.font = FONTT; x.textAlign = 'center'; x.textBaseline = 'middle';
+        x.fillText('员工个人发展计划表', W / 2, rowY + r.h / 2);
+        x.strokeStyle = '#000'; x.lineWidth = 2;
+        x.beginPath(); x.moveTo(pad, rowY + r.h); x.lineTo(pad + innerW, rowY + r.h); x.stroke();
+        x.lineWidth = 1; x.font = FONT; x.textAlign = 'left';
+        y += r.h;
+        return;
+      }
+      // 发起/延续 goals 区域（左列留给 rowspan）
+      if (r.kind === 'goalHead' || r.kind === 'goalRow') {
+        if (!pending) pending = { top: rowY };
+        var cx = pad + colL;
+        if (r.kind === 'goalHead') {
+          box(x, cx, rowY, seqW, r.h, '序号', { bg: LABELBG, font: FONTB });
+          box(x, cx + seqW, rowY, catW, r.h, '目标类别', { bg: LABELBG, font: FONTB });
+          box(x, cx + seqW + catW, rowY, descW, r.h, '目标描述', { bg: LABELBG, font: FONTB });
         } else {
-          x.strokeStyle = cc.gray ? '#bbb' : '#000';
-          x.strokeRect(cx, rowY, w, h);
-          x.fillStyle = '#000';
-          x.font = cc.l ? FONT_B : FONT;
-          var txt = cc.t == null ? '' : String(cc.t);
-          var lns = lines(txt, w - 8);
-          var ty = rowY + h / 2 - ((lns.length - 1) * lineH) / 2;
-          x.textAlign = 'center';
-          lns.forEach(function(ln, li) { x.fillText(ln, cx + w / 2, ty + li * lineH); });
-          x.font = FONT;
+          var c2 = cx;
+          r.cells.forEach(function(cc) {
+            box(x, c2, rowY, cc.w, r.h, cc.t);
+            c2 += cc.w;
+          });
         }
-        cx += w;
+        pending.bottom = rowY + r.h;
+        y += r.h;
+        return;
+      }
+      // 普通行 / 页脚
+      if (r.kind === 'foot') {
+        flushGoal(rowY);
+        x.fillStyle = '#888'; x.font = FONT; x.textAlign = 'center';
+        x.fillText(('第 ' + (pi + 1) + ' 页 · 打印日期：' + data.dateStr), W / 2, rowY + r.h / 2);
+        x.font = FONT; x.textAlign = 'left';
+        y += r.h;
+        return;
+      }
+      // 普通行
+      flushGoal(rowY);
+      var cx2 = pad;
+      r.cells.forEach(function(cc) {
+        var w = rw(cc);
+        var isLbl = cc.l;
+        var t = cc.t;
+        box(x, cx2, rowY, w, r.h, t, { bg: isLbl ? LABELBG : null, font: isLbl ? FONTB : FONT });
+        cx2 += w;
       });
-      y += h;
+      y += r.h;
     });
+    flushGoal(y);          // 页尾即将结束，收尾 rowspan
+    // 页脚（若内容超出则置于最后一页底部）
+    if (pi === pages.length - 1) {
+      x.fillStyle = '#888'; x.font = FONT; x.textAlign = 'center';
+      x.fillText('打印日期：' + data.dateStr, W / 2, PAGE_H - 20);
+      x.font = FONT; x.textAlign = 'left';
+    }
     out.push(c.toDataURL('image/png'));
   });
   return out;
