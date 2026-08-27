@@ -771,22 +771,22 @@
 
       <!-- 操作提示 -->
       <div id="submitHint" class="mb-3 p-2 rounded text-center text-sm" style="background:#fef3c7;border:1px solid #fcd34d;color:#92400e;">
-        第一步：点击「导出 Word」生成文档<br>第二步：导出成功后，点击「提交」完成填报
+        第一步：点击「提交保存数据」保存<br>第二步：提交成功后，点击「导出 Word / 生成图片」生成文档
       </div>
 
       <!-- 操作按钮 -->
       <div class="flex flex-col sm:flex-row gap-3 sm:gap-3">
-        <button type="button" class="btn btn-outline flex-1" id="exportWordBtn">
+        <button type="button" class="btn btn-primary flex-1" id="submitBtn">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+          </svg>
+          提交保存数据
+        </button>
+        <button type="button" class="btn btn-outline flex-1" id="exportWordBtn" disabled style="opacity:0.5;cursor:not-allowed;">
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
           </svg>
           <span>导出 Word</span>
-        </button>
-        <button type="button" class="btn btn-primary flex-1" id="submitBtn" disabled style="opacity:0.5;cursor:not-allowed;">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-          </svg>
-          提交
         </button>
       </div>
     </div>
@@ -876,6 +876,9 @@ function supabaseFetch(path, method, body) {
 
 // ========== 状态：是否已导出Word ==========
 let wordExported = false;
+let draftGoalsRestored = false;
+const DRAFT_KEY = 'idp_draft_v1';
+let _draftTimer = null;
 
 // ========== 初始化 ==========
 function init() {
@@ -884,11 +887,12 @@ function init() {
     var eb = document.getElementById('exportWordBtn');
     if (eb) { var sp = eb.querySelector('span'); if (sp) sp.textContent = '生成图片/保存'; }
     var sh = document.getElementById('submitHint');
-    if (sh) sh.innerHTML = '第一步：点击「生成图片/保存」生成图片<br>第二步：导出成功后，点击「提交」完成填报';
+    if (sh) sh.innerHTML = '第一步：点击「提交保存数据」保存<br>第二步：提交成功后，点击「生成图片/保存」导出';
   }
+  loadDraft(); // 恢复上次未完成的填写内容
   loadDepartments();
   bindEvents();
-  addGoal();
+  if (!draftGoalsRestored) addGoal();
   updatePreview();
   updateGoalCount();
   setupImageViewer();
@@ -1004,16 +1008,91 @@ function bindEvents() {
   // 移动端预览切换
   document.getElementById('previewToggleBtn').addEventListener('click', togglePreview);
 
-  // 关闭弹窗
+  // 关闭弹窗（不重置表单——提交后仍需导出，需保留数据）
   document.getElementById('closeModalBtn').addEventListener('click', function() {
     document.getElementById('submitModal').classList.remove('show');
-    resetForm();
   });
 
   // 所有输入框实时更新预览
   ['name','projectName'].forEach(id => {
     document.getElementById(id).addEventListener('input', updatePreview);
   });
+
+  // 自动保存草稿：任何表单内容变化都自动存到 localStorage
+  document.addEventListener('input', scheduleDraft);
+  document.addEventListener('change', scheduleDraft);
+}
+
+// ========== 自动保存草稿（填写内容实时存 localStorage，重开网址自动回填） ==========
+function scheduleDraft(e) {
+  var t = e && e.target;
+  if (!t) return;
+  if (t.id && ['name', 'department', 'projectName', 'selfEvaluation'].indexOf(t.id) > -1) { saveDraft(); return; }
+  if (t.name === 'devPath' || (t.closest && t.closest('#goalsContainer'))) saveDraft();
+}
+
+function saveDraft() {
+  clearTimeout(_draftTimer);
+  _draftTimer = setTimeout(function() {
+    try {
+      var devPathEl = document.querySelector('input[name="devPath"]:checked');
+      document.getElementById('department').value; // 触达确保存在
+      var draft = {
+        name: document.getElementById('name').value,
+        department: document.getElementById('department').value,
+        projectName: document.getElementById('projectName').value,
+        selfEvaluation: document.getElementById('selfEvaluation').value,
+        devPath: devPathEl ? devPathEl.value : '',
+        goals: collectGoals()
+      };
+      localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+    } catch(e) {}
+  }, 300);
+}
+
+function loadDraft() {
+  var raw = null;
+  try { raw = localStorage.getItem(DRAFT_KEY); } catch(e) {}
+  if (!raw) return;
+  var d = null;
+  try { d = JSON.parse(raw); } catch(e) {}
+  if (!d) return;
+
+  showToast('已自动恢复上次未完成的填写内容', 'info');
+
+  var nameEl = document.getElementById('name');
+  if (d.name && nameEl) nameEl.value = d.name;
+  if (d.department) {
+    document.getElementById('department').value = d.department;
+    if (d.department === '监理项目部') {
+      document.getElementById('projectNameWrapper').style.display = '';
+    }
+  }
+  if (d.projectName) document.getElementById('projectName').value = d.projectName;
+  if (d.selfEvaluation) {
+    document.getElementById('selfEvaluation').value = d.selfEvaluation;
+    document.getElementById('charCount').textContent = d.selfEvaluation.length;
+  }
+  if (d.devPath) {
+    var r = document.querySelector('input[name="devPath"][value="' + d.devPath + '"]');
+    if (r) { r.checked = true; if (r.closest) r.closest('.radio-card').classList.add('selected'); }
+  }
+  if (d.goals && d.goals.length) {
+    document.getElementById('goalsContainer').innerHTML = '';
+    goalCounter = 0;
+    d.goals.forEach(function(g) {
+      addGoal();
+      var cards = document.querySelectorAll('#goalsContainer .goal-card');
+      var el = cards[cards.length - 1];
+      if (!el) return;
+      var cs = el.querySelector('.goal-category');
+      if (cs && g.category) { cs.value = g.category; if (onGoalCategoryChange) onGoalCategoryChange(cs); }
+      var dv = el.querySelector('.goal-description'); if (dv) dv.value = g.description || '';
+      var dt = el.querySelector('.goal-date'); if (dt) dt.value = g.date || '';
+      var pl = el.querySelector('.goal-plan'); if (pl) pl.value = g.plan || '';
+    });
+    draftGoalsRestored = true;
+  }
 }
 
 // 折叠/展开公司信息
@@ -1258,7 +1337,6 @@ function validateForm() {
 // ========== 提交 ==========
 async function submitForm() {
   if (!validateForm()) return;
-  if (!wordExported) { showToast('请先导出 Word 文件后再提交', 'error'); return; }
 
   const btn = document.getElementById('submitBtn');
   btn.disabled = true;
@@ -1303,7 +1381,7 @@ async function submitForm() {
         uploadedOk = false;
       } else {
         btn.disabled = false;
-        btn.innerHTML = '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg> 提交';
+        btn.innerHTML = '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg> 提交保存数据';
         showToast('提交失败：' + failMsg, 'error');
         return;
       }
@@ -1316,16 +1394,27 @@ async function submitForm() {
   }
 
   btn.disabled = false;
-  btn.innerHTML = '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg> 提交';
+  btn.innerHTML = '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg> 提交保存数据';
 
   if (success) {
     var subText = document.getElementById('modalSubText');
     if (subText) {
       subText.textContent = uploadedOk
-        ? '您的个人发展计划已成功提交到后台，表单已自动重置。'
-        : '本次数据仅保存到本地草稿（未上传到后台），可在本机查看。';
+        ? '您的个人发展计划已成功保存到后台。现可点击「导出 Word / 生成图片」生成可打印文档。'
+        : '数据仅保存到本地草稿（未上传到后台）。';
     }
     document.getElementById('submitModal').classList.add('show');
+
+    // 提交成功 → 点亮导出按钮（按钮②）
+    var exBtn = document.getElementById('exportWordBtn');
+    if (exBtn) { exBtn.disabled = false; exBtn.style.opacity = ''; exBtn.style.cursor = ''; }
+    var hint = document.getElementById('submitHint');
+    if (hint) {
+      hint.innerHTML = '数据已保存成功！请点击「导出 Word / 生成图片」生成文档';
+      hint.style.background = '#d1fae5';
+      hint.style.borderColor = '#6ee7b7';
+      hint.style.color = '#065f46';
+    }
   } else {
     showToast('提交失败，请重试', 'error');
   }
@@ -1357,13 +1446,15 @@ function resetForm() {
   updateGoalCount();
 
   wordExported = false;
-  var submitBtn = document.getElementById('submitBtn');
-  submitBtn.disabled = true;
-  submitBtn.style.opacity = '0.5';
-  submitBtn.style.cursor = 'not-allowed';
+  draftGoalsRestored = false;
+  if (localStorage) { try { localStorage.removeItem(DRAFT_KEY); } catch(e) {} }
+  var submitBtn2 = document.getElementById('submitBtn');
+  if (submitBtn2) { submitBtn2.disabled = false; submitBtn2.style.opacity = ''; submitBtn2.style.cursor = ''; }
+  var exBtn2 = document.getElementById('exportWordBtn');
+  if (exBtn2) { exBtn2.disabled = true; exBtn2.style.opacity = '0.5'; exBtn2.style.cursor = 'not-allowed'; }
   var hint = document.getElementById('submitHint');
   if (hint) {
-    hint.innerHTML = '第一步：点击「导出 Word」生成文档<br>第二步：导出成功后，点击「提交」完成填报';
+    hint.innerHTML = '第一步：点击「提交保存数据」保存<br>第二步：提交成功后，点击「导出 Word / 生成图片」生成文档';
     hint.style.background = '#fef3c7';
     hint.style.borderColor = '#fcd34d';
     hint.style.color = '#92400e';
@@ -1486,14 +1577,10 @@ function exportWord() {
   setTimeout(function() { URL.revokeObjectURL(url); }, 1000);
   showToast('Word文档已下载，可编辑打印', 'success');
 
-  wordExported = true;
-  var submitBtn = document.getElementById('submitBtn');
-  submitBtn.disabled = false;
-  submitBtn.style.opacity = '';
-  submitBtn.style.cursor = '';
+  // 提交已在前完成，这里只需更新提示
   var hint = document.getElementById('submitHint');
   if (hint) {
-    hint.innerHTML = 'Word 已导出成功！请务必点击「提交」完成填报';
+    hint.innerHTML = 'Word 文档已导出，可打印 / 用 WPS 编辑后提交纸质版';
     hint.style.background = '#d1fae5';
     hint.style.borderColor = '#6ee7b7';
     hint.style.color = '#065f46';
@@ -1612,13 +1699,10 @@ function exportImage() {
       openExportPreview(imgData, baseName);
       showToast('图片已生成', 'success');
 
-      // 导出成功 → 启用提交按钮
-      wordExported = true;
-      var sBtn = document.getElementById('submitBtn');
-      if (sBtn) { sBtn.disabled = false; sBtn.style.opacity = ''; sBtn.style.cursor = ''; }
+      // 导出成功（提交已在前完成）→ 仅更新提示
       var sHint = document.getElementById('submitHint');
       if (sHint) {
-        sHint.innerHTML = '已生成图片！请务必点击「提交」完成填报';
+        sHint.innerHTML = '图片已生成，可保存 / 打印后提交纸质版';
         sHint.style.background = '#d1fae5';
         sHint.style.borderColor = '#6ee7b7';
         sHint.style.color = '#065f46';
