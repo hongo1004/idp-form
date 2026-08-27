@@ -1570,12 +1570,15 @@ function exportPrint() {
 
   showToast('已生成文档，正在打开打印窗口...', 'info');
 
-  // 打开系统打印对话框（安卓可选"另存为PDF"，iPhone可选"存储为PDF"），完成后恢复界面
-  document.body.classList.add('printing');
-  setTimeout(function() {
-    window.print();
+  // 打开系统打印对话框。注意：必须同步直接调用 window.print()，
+  // 不能加 setTimeout —— iOS Safari 在延时的回调里丢失"用户手势"上下文，不会弹出打印对话框
+  function endPrint() {
     document.body.classList.remove('printing');
-  }, 300);
+    window.removeEventListener('afterprint', endPrint);
+  }
+  window.addEventListener('afterprint', endPrint);
+  document.body.classList.add('printing');
+  window.print();
 
   // 视为已导出，启用提交按钮
   wordExported = true;
