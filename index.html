@@ -1739,22 +1739,29 @@ function drawA4PlanToImages(data) {
   });
   function blockH(block) { var s = 0; block.forEach(function(r) { s += r.h; }); return s; }
 
-  // 分块：keep 行及其紧邻前内容成块，审核组/公司意见组绝不跨页
-  var blocks = [], curb = [];
+  // 分组：普通行按行可换页；keep 组（审核组/公司意见组）整组不拆开
+  var items = [], group = null, groupKey = null;
   rows.forEach(function(r) {
-    curb.push(r);
-    if (r.keep) { blocks.push(curb); curb = []; }
+    if (r.keep) {
+      if (!group || groupKey !== r.keep) {
+        if (group) items.push({ rows: group, keep: 1 });
+        group = []; groupKey = r.keep;
+      }
+      group.push(r);
+    } else {
+      if (group) { items.push({ rows: group, keep: 1 }); group = null; groupKey = null; }
+      items.push({ rows: [r] });
+    }
   });
-  if (curb.length) blocks.push(curb);
+  if (group) items.push({ rows: group, keep: 1 });
+  items.forEach(function(it) { it.h = 0; it.rows.forEach(function(r) { it.h += r.h; }); });
 
-  // 分页
+  // 分页：允许在普通行之间换页（内容再多也不会被裁出画布），keep 组始终整体换页
   var pages = [], pageRows = [], used = 0;
-  blocks.forEach(function(blk) {
-    var bh = blockH(blk);
-    if (pageRows.length && (used + bh) > usable) { pages.push(pageRows); pageRows = []; used = 0; }
-    if (pageRows.length === 0) used = 0;
-    pageRows = pageRows.concat(blk);
-    used += bh;
+  items.forEach(function(it) {
+    if (pageRows.length && (used + it.h) > usable) { pages.push(pageRows); pageRows = []; used = 0; }
+    it.rows.forEach(function(r) { pageRows.push(r); });
+    used += it.h;
   });
   if (pageRows.length) pages.push(pageRows);
 
@@ -1846,12 +1853,6 @@ function drawA4PlanToImages(data) {
       y += r.h;
     });
     flushGoal(y);          // 页尾即将结束，收尾 rowspan
-    // 页脚（若内容超出则置于最后一页底部）
-    if (pi === pages.length - 1) {
-      x.fillStyle = '#888'; x.font = FONT; x.textAlign = 'center';
-      x.fillText('打印日期：' + data.dateStr, W / 2, PAGE_H - 20);
-      x.font = FONT; x.textAlign = 'left';
-    }
     out.push(c.toDataURL('image/png'));
   });
   return out;
