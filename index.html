@@ -240,6 +240,27 @@
     text-align: center;
     white-space: nowrap;
   }
+  /* 发展目标子表：独立嵌套表格，列宽固定（序号窄 / 类别、描述为主列 / 达成时间适中），避免与外层大表互相拉扯导致错乱 */
+  .preview-doc .goal-subtable {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+  }
+  .preview-doc .goal-subtable td {
+    border: 1px solid #cbd5e1;
+    padding: 0.45rem 0.5rem;
+    vertical-align: middle;
+    text-align: center;
+    line-height: 1.5;
+    overflow-wrap: break-word;
+    word-break: break-word;
+  }
+  .preview-doc .goal-subtable .doc-label {
+    background: #f1f5f9;
+    font-weight: 600;
+    width: auto;
+    white-space: nowrap;
+  }
   .collapse-btn {
     width: 100%;
     display: flex;
@@ -522,6 +543,28 @@
       overflow-wrap: break-word !important;
     }
 
+    .preview-doc .goal-subtable {
+      width: 100% !important;
+      border-collapse: collapse !important;
+      table-layout: fixed !important;
+      font-size: 10pt !important;
+    }
+    .preview-doc .goal-subtable td {
+      border: 0.5pt solid #333 !important;
+      padding: 4px 6px !important;
+      vertical-align: middle !important;
+      text-align: center !important;
+      line-height: 1.4 !important;
+      color: #000 !important;
+      background: #fff !important;
+      word-wrap: break-word !important;
+      overflow-wrap: break-word !important;
+    }
+    .preview-doc .goal-subtable tr {
+      page-break-inside: avoid !important;
+      break-inside: avoid !important;
+    }
+
     .preview-doc .doc-label {
       background: #f0f0f0 !important;
       font-weight: bold !important;
@@ -756,6 +799,16 @@
             </svg>
             添加发展目标
           </button>
+          <div class="mt-4">
+            <label for="implementationPlan" class="form-label required-mark">初步实施计划（一套，覆盖上述所有目标）</label>
+            <textarea id="implementationPlan" class="form-input" rows="3" placeholder="可按短期、中期、长期梳理提升步骤，写明提升措施及时间安排。" oninput="updatePreview()" required></textarea>
+            <div class="bg-slate-50 border border-slate-200 rounded-lg p-3 mt-2 text-xs text-slate-500 leading-relaxed">
+              <p class="font-semibold text-slate-600 mb-1">参考示例：</p>
+              <p>短期（本年度）：学习相关专业规范，报名对应考试，完成课程学习；</p>
+              <p>中期（1-2 年）：参与重点项目实践，积累现场经验，完成证书 / 职称申报；</p>
+              <p>长期（3 年及以上）：巩固专业能力，向技术骨干方向提升。</p>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -1042,6 +1095,7 @@ function saveDraft() {
         projectName: document.getElementById('projectName').value,
         selfEvaluation: document.getElementById('selfEvaluation').value,
         devPath: devPathEl ? devPathEl.value : '',
+        plan: collectPlan(),
         goals: collectGoals()
       };
       localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
@@ -1076,6 +1130,10 @@ function loadDraft() {
     var r = document.querySelector('input[name="devPath"][value="' + d.devPath + '"]');
     if (r) { r.checked = true; if (r.closest) r.closest('.radio-card').classList.add('selected'); }
   }
+  if (d.plan != null) {
+    var pe = document.getElementById('implementationPlan');
+    if (pe) pe.value = d.plan;
+  }
   if (d.goals && d.goals.length) {
     document.getElementById('goalsContainer').innerHTML = '';
     goalCounter = 0;
@@ -1088,7 +1146,6 @@ function loadDraft() {
       if (cs && g.category) { cs.value = g.category; if (onGoalCategoryChange) onGoalCategoryChange(cs); }
       var dv = el.querySelector('.goal-description'); if (dv) dv.value = g.description || '';
       var dt = el.querySelector('.goal-date'); if (dt) dt.value = g.date || '';
-      var pl = el.querySelector('.goal-plan'); if (pl) pl.value = g.plan || '';
     });
     draftGoalsRestored = true;
   }
@@ -1176,16 +1233,6 @@ function addGoal() {
         <label class="form-label required-mark">目标达成时间</label>
         <input type="text" class="form-input goal-date" placeholder="如：2026年下半年、2027年、1-2年内" oninput="updatePreview()" required>
       </div>
-      <div>
-        <label class="form-label required-mark">初步实施计划</label>
-        <textarea class="form-input goal-plan" rows="3" placeholder="可按短期、中期、长期梳理提升步骤，写明提升措施及时间安排。" oninput="updatePreview()" required></textarea>
-        <div class="bg-slate-50 border border-slate-200 rounded-lg p-3 mt-2 text-xs text-slate-500 leading-relaxed">
-          <p class="font-semibold text-slate-600 mb-1">参考示例：</p>
-          <p>短期（本年度）：学习相关专业规范，报名对应考试，完成课程学习；</p>
-          <p>中期（1-2 年）：参与重点项目实践，积累现场经验，完成证书 / 职称申报；</p>
-          <p>长期（3 年及以上）：巩固专业能力，向技术骨干方向提升。</p>
-        </div>
-      </div>
     </div>
   `;
 
@@ -1230,12 +1277,17 @@ function collectGoals() {
     const category = g.querySelector('.goal-category')?.value || '';
     const description = g.querySelector('.goal-description')?.value || '';
     const date = g.querySelector('.goal-date')?.value || '';
-    const plan = g.querySelector('.goal-plan')?.value || '';
-    if (category || description || date || plan) {
-      goals.push({ category, description, date, plan });
+    if (category || description || date) {
+      goals.push({ category, description, date });
     }
   });
   return goals;
+}
+
+// 收集统一的初步实施计划
+function collectPlan() {
+  const el = document.getElementById('implementationPlan');
+  return el ? el.value || '' : '';
 }
 
 // ========== 实时预览 ==========
@@ -1247,6 +1299,7 @@ function updatePreview() {
   const devPathEl = document.querySelector('input[name="devPath"]:checked');
   const devPath = devPathEl ? devPathEl.value : '';
   const goals = collectGoals();
+  const plan = collectPlan();
 
   let html = '<div class="doc-title">员工个人发展计划表</div>';
   html += '<table>';
@@ -1265,21 +1318,26 @@ function updatePreview() {
   // 发展路径
   html += '<tr><td class="doc-label">发展路径</td><td colspan="3">' + escapeHtml(devPath || '　　　　') + '</td></tr>';
 
-  // 发展目标
+  // 发展目标（多条，每行自带达成时间，一一对应；共用一套实施计划）
+  // 采用独立嵌套子表 + 固定列宽（序号列容纳表头为准，其余三列等宽），
+  // 避免与外层基本信息表 colspan 互相拉扯导致多条目标时错乱或挤压。
   if (goals.length > 0) {
-    html += '<tr><td class="doc-label" rowspan="' + (goals.length + 1) + '">发展目标</td>';
-    html += '<td class="doc-label" style="width:3.5rem;">序号</td>';
-    html += '<td class="doc-label">目标类别</td>';
-    html += '<td class="doc-label" style="width:30%;">目标描述</td></tr>';
+    html += '<tr><td class="doc-label" colspan="4">发展目标</td></tr>';
+    html += '<tr><td colspan="4" style="padding:0;border:none;">';
+    html += '<table class="goal-subtable">';
+    html += '<tr><td class="doc-label" style="width:8%;">序号</td><td class="doc-label" style="width:30.67%;">目标类别</td><td class="doc-label" style="width:30.67%;">目标描述</td><td class="doc-label" style="width:30.66%;">达成时间</td></tr>';
     goals.forEach((g, i) => {
       html += '<tr>';
-      html += '<td style="text-align:center;">' + (i + 1) + '</td>';
+      html += '<td>' + (i + 1) + '</td>';
       html += '<td>' + escapeHtml(g.category || '　') + '</td>';
       html += '<td>' + (g.description ? escapeHtml(g.description) : '—') + '</td>';
+      html += '<td>' + escapeHtml(g.date || '　') + '</td>';
       html += '</tr>';
-      html += '<tr><td colspan="2" class="doc-label" style="width:4rem;">达成时间</td><td colspan="2">' + escapeHtml(g.date || '　') + '</td></tr>';
-      html += '<tr><td colspan="2" class="doc-label">实施计划</td><td colspan="2">' + escapeHtml(g.plan || '　').replace(/\n/g, '<br>') + '</td></tr>';
     });
+    html += '</table>';
+    html += '</td></tr>';
+    // 实施计划：共用一套，放回外层标签行，与「项目名称/发展路径/公司意见」等四字标签同一列宽、文字齐平
+    html += '<tr><td class="doc-label">实施计划</td><td colspan="3">' + (plan ? escapeHtml(plan).replace(/\n/g, '<br>') : '　') + '</td></tr>';
   } else {
     html += '<tr><td class="doc-label">发展目标</td><td colspan="3" style="text-align:center;color:#94a3b8;">暂无目标</td></tr>';
   }
@@ -1327,8 +1385,8 @@ function validateForm() {
     var needDesc = g.category.indexOf('专业技术方向精进') > -1 || g.category.indexOf('其他') > -1;
     if (needDesc && !g.description) { showToast('第' + (i+1) + '条目标请填写目标描述', 'error'); return false; }
     if (!g.date) { showToast('第' + (i+1) + '条目标请填写达成时间', 'error'); return false; }
-    if (!g.plan) { showToast('第' + (i+1) + '条目标请填写实施计划', 'error'); return false; }
   }
+  if (!collectPlan().trim()) { showToast('请填写初步实施计划', 'error'); var pe = document.getElementById('implementationPlan'); if (pe) pe.focus(); return false; }
 
   return true;
 }
@@ -1347,6 +1405,7 @@ async function submitForm() {
     project_name: document.getElementById('department').value === '监理项目部' ? document.getElementById('projectName').value.trim() : null,
     self_evaluation: document.getElementById('selfEvaluation').value.trim(),
     development_path: document.querySelector('input[name="devPath"]:checked').value,
+    implementation_plan: collectPlan(),
     goals: collectGoals()
   };
 
@@ -1482,6 +1541,7 @@ function exportWord() {
   const devPathEl = document.querySelector('input[name="devPath"]:checked');
   const devPath = devPathEl ? devPathEl.value : '　';
   const goals = collectGoals();
+  const plan = collectPlan();
 
   let projectRow = '';
   if (dept === '监理项目部') {
@@ -1490,18 +1550,15 @@ function exportWord() {
 
   let goalsHtml = '';
   if (goals.length > 0) {
-    var rowspan = goals.length * 3 + 1;
-    goalsHtml += '<tr style="height:24pt;"><td class="lbl side" rowspan="' + rowspan + '">发展目标</td>';
-    goalsHtml += '<td class="lbl" style="width:5%;">序号</td>';
-    goalsHtml += '<td class="lbl" style="width:25%;">目标类别</td>';
-    goalsHtml += '<td class="lbl" style="width:60%;">目标描述</td></tr>';
+    goalsHtml += '<tr style="height:24pt;"><td class="lbl" colspan="4">发展目标</td></tr>';
+    goalsHtml += '<tr style="height:24pt;"><td class="lbl" style="width:8%;">序号</td><td class="lbl" style="width:30.67%;">目标类别</td><td class="lbl" style="width:30.67%;">目标描述</td><td class="lbl" style="width:30.66%;">达成时间</td></tr>';
     goals.forEach(function(g, i) {
-      goalsHtml += '<tr style="height:24pt;"><td style="text-align:center;">' + (i+1) + '</td><td style="text-align:center;">' + escapeHtml(g.category) + '</td><td style="text-align:center;">' + (g.description ? escapeHtml(g.description) : '—') + '</td></tr>';
-      goalsHtml += '<tr style="height:24pt;"><td class="lbl">达成时间</td><td style="text-align:center;" colspan="2">' + escapeHtml(g.date) + '</td></tr>';
-      goalsHtml += '<tr style="height:24pt;"><td class="lbl">实施计划</td><td style="text-align:center;" colspan="2">' + escapeHtml(g.plan).replace(/\n/g, '<br>') + '</td></tr>';
+      goalsHtml += '<tr style="height:24pt;"><td style="text-align:center;">' + (i+1) + '</td><td style="text-align:center;">' + escapeHtml(g.category) + '</td><td style="text-align:center;">' + (g.description ? escapeHtml(g.description) : '—') + '</td><td style="text-align:center;">' + escapeHtml(g.date) + '</td></tr>';
     });
+    // 实施计划：共用一套
+    goalsHtml += '<tr style="height:36pt;"><td class="lbl">实施计划</td><td style="text-align:center;" colspan="3">' + escapeHtml(plan).replace(/\n/g, '<br>') + '</td></tr>';
   } else {
-    goalsHtml = '<tr style="height:28pt;"><td class="lbl side">发展目标</td><td colspan="3">　</td></tr>';
+    goalsHtml = '<tr style="height:28pt;"><td class="lbl">发展目标</td><td colspan="3">　</td></tr>';
   }
 
   var printDate = new Date();
@@ -1597,30 +1654,7 @@ function exportImage() {
   const devPathEl = document.querySelector('input[name="devPath"]:checked');
   const devPath = devPathEl ? devPathEl.value : '　';
   const goals = collectGoals();
-
-  let goalsHtml = '';
-  if (goals.length > 0) {
-    goalsHtml = '<tr><td class="lbl" rowspan="' + (goals.length*3+1) + '">发展<br>目标</td>';
-    goalsHtml += '<td class="lbl" style="width:40px;">序号</td>';
-    goalsHtml += '<td class="lbl">目标类别</td>';
-    goalsHtml += '<td class="lbl" style="width:42%;">目标描述</td></tr>';
-    goals.forEach((g, i) => {
-      goalsHtml += '<tr>';
-      goalsHtml += '<td style="text-align:center;">' + (i+1) + '</td>';
-      goalsHtml += '<td>' + escapeHtml(g.category) + '</td>';
-      goalsHtml += '<td>' + escapeHtml(g.description) + '</td>';
-      goalsHtml += '</tr>';
-      goalsHtml += '<tr><td class="lbl" colspan="2">达成时间</td><td colspan="2">' + escapeHtml(g.date) + '</td></tr>';
-      goalsHtml += '<tr><td class="lbl" colspan="2">实施计划</td><td colspan="2">' + escapeHtml(g.plan).replace(/\n/g, '<br>') + '</td></tr>';
-    });
-  } else {
-    goalsHtml = '<tr><td class="lbl">发展目标</td><td colspan="3">　</td></tr>';
-  }
-
-  let projectRow = '';
-  if (dept === '监理项目部') {
-    projectRow = '<tr><td class="lbl">项目名称</td><td colspan="3">' + escapeHtml(projectName) + '</td></tr>';
-  }
+  const plan = collectPlan();
 
   const dateStr = new Date().getFullYear() + '-' + String(new Date().getMonth()+1).padStart(2,'0') + '-' + String(new Date().getDate()).padStart(2,'0');
 
@@ -1628,7 +1662,7 @@ function exportImage() {
   showToast('正在生成图片，请稍候...', 'info');
 
   try {
-    var imgData = drawA4PlanToImages({ name: name, dept: dept, projectName: projectName, selfEval: selfEval, devPath: devPath, goals: goals, dateStr: dateStr });
+    var imgData = drawA4PlanToImages({ name: name, dept: dept, projectName: projectName, selfEval: selfEval, devPath: devPath, goals: goals, plan: plan, dateStr: dateStr });
     if (!imgData || imgData.length === 0) { showToast('图片生成失败，请重试', 'error'); return; }
 
     // 展示图片预览，由用户在新的用户手势下长按保存或点击批量保存（移动端最稳，不受下载API限制）
@@ -1656,7 +1690,9 @@ function drawA4PlanToImages(data) {
   var innerW = W - 2 * pad;
   var valW = (innerW - 2 * colL) / 2;        // 普通值列
   var spanW = innerW - colL;                 // colspan3 值宽
-  var seqW = 34, catW = 110, descW = spanW - seqW - catW; // 发展目标三列
+  var seqW = 54;                    // 序号列：宽度以能完整容纳表头「序号」二字为准
+  var thirdW = Math.round((innerW - seqW) / 3);  // 目标类别/目标描述/达成时间三列等宽均分
+  var catW = thirdW, descW = thirdW, dateW = innerW - seqW - catW - descW;
   var PAGE_H = Math.round(W * 297 / 210);
   var topPad = 54, bottomPad = 46;
   var usable = PAGE_H - topPad - bottomPad;
@@ -1683,6 +1719,7 @@ function drawA4PlanToImages(data) {
     return out;
   }
   function rw(c) {
+    if (c.w != null) return c.w;
     if (c.l) return colL;
     if (c.span === 3) return spanW;
     return valW;
@@ -1703,18 +1740,20 @@ function drawA4PlanToImages(data) {
   rows.push({ kind: 'row', cells: [{ t: '自我评判', l: 1, span: 1 }, { t: data.selfEval, span: 3 }], minH: 56 });
   rows.push({ kind: 'row', cells: [{ t: '发展路径', l: 1, span: 1 }, { t: data.devPath, span: 3 }] });
 
-  // 发展目标：rowspan 左列 + 序号/类别/描述三列
+  // 发展目标：整行标题 + 四列子表（每条目标自带达成时间，一一对应）；一套共享实施计划
   if (data.goals && data.goals.length) {
-    rows.push({ kind: 'goalHead', h: 26 });
+    rows.push({ kind: 'row', cells: [{ t: '发展目标', l: 1 }, { t: '', span: 3 }] });
+    rows.push({ kind: 'row', cells: [{ t: '序号', l: 1, w: seqW }, { t: '目标类别', l: 1, w: catW }, { t: '目标描述', l: 1, w: descW }, { t: '达成时间', l: 1, w: dateW }] });
     data.goals.forEach(function(g, i) {
-      rows.push({ kind: 'goalRow', cells: [
+      rows.push({ kind: 'row', cells: [
         { t: (i + 1) + '', w: seqW },
         { t: g.category || '', w: catW },
-        { t: g.description || '', w: descW }
+        { t: g.description || '', w: descW },
+        { t: g.date || '', w: dateW }
       ] });
-      rows.push({ kind: 'row', cells: [{ t: '达成时间', l: 1, span: 1 }, { t: g.date || '', span: 3 }] });
-      rows.push({ kind: 'row', cells: [{ t: '实施计划', l: 1, span: 1 }, { t: g.plan || '', span: 3 }] });
     });
+    // 实施计划：共用一套
+    rows.push({ kind: 'row', cells: [{ t: '实施计划', l: 1, span: 1 }, { t: data.plan || '', span: 3 }] });
   } else {
     rows.push({ kind: 'row', cells: [{ t: '发展目标', l: 1, span: 1 }, { t: '', span: 3 }], minH: 56 });
   }
@@ -1728,13 +1767,7 @@ function drawA4PlanToImages(data) {
 
   // 计算普通行高度
   rows.forEach(function(r) {
-    if (r.kind === 'goalHead') r.h = 26;
-    else if (r.kind === 'goalRow') {
-      var hl = lines(r.cells[1].t || '', (r.cells[1].w || catW) - 8);
-      if (r.cells[2].t && r.cells[2].t !== '') hl = Math.max(hl.length, lines(r.cells[2].t, (r.cells[2].w || descW) - 8).length);
-      r.h = hl * lineH + vpad * 2;
-    }
-    else if (r.kind === 'row') r.h = rh(r.cells, r.minH || 0);
+    if (r.kind === 'row') r.h = rh(r.cells, r.minH || 0);
     else r.h = 52;
   });
   function blockH(block) { var s = 0; block.forEach(function(r) { s += r.h; }); return s; }
@@ -1790,19 +1823,10 @@ function drawA4PlanToImages(data) {
     x.fillStyle = '#ffffff'; x.fillRect(0, 0, W, PAGE_H);
     x.font = FONT; x.textBaseline = 'middle'; x.textAlign = 'left';
     var y = topPad;
-    var pending = null; // {top, bottom} 发展目标 rowspan 左列
-    function flushGoal(yEnd) {
-      if (pending) {
-        var gh = yEnd - pending.top;
-        box(x, pad, pending.top, colL, gh, '发展\n目标', { bg: LABELBG, font: FONTB });
-        pending = null;
-      }
-    }
     pr.forEach(function(r) {
       var rowY = y;
       // 标题
       if (r.kind === 'title' && pi === 0) {
-        flushGoal(rowY);
         x.fillStyle = '#ffffff'; x.fillRect(pad, rowY, innerW, r.h);
         x.fillStyle = '#000'; x.font = FONTT; x.textAlign = 'center'; x.textBaseline = 'middle';
         x.fillText('员工个人发展计划表', W / 2, rowY + r.h / 2);
@@ -1812,28 +1836,8 @@ function drawA4PlanToImages(data) {
         y += r.h;
         return;
       }
-      // 发起/延续 goals 区域（左列留给 rowspan）
-      if (r.kind === 'goalHead' || r.kind === 'goalRow') {
-        if (!pending) pending = { top: rowY };
-        var cx = pad + colL;
-        if (r.kind === 'goalHead') {
-          box(x, cx, rowY, seqW, r.h, '序号', { bg: LABELBG, font: FONTB });
-          box(x, cx + seqW, rowY, catW, r.h, '目标类别', { bg: LABELBG, font: FONTB });
-          box(x, cx + seqW + catW, rowY, descW, r.h, '目标描述', { bg: LABELBG, font: FONTB });
-        } else {
-          var c2 = cx;
-          r.cells.forEach(function(cc) {
-            box(x, c2, rowY, cc.w, r.h, cc.t);
-            c2 += cc.w;
-          });
-        }
-        pending.bottom = rowY + r.h;
-        y += r.h;
-        return;
-      }
-      // 普通行 / 页脚
+      // 页脚
       if (r.kind === 'foot') {
-        flushGoal(rowY);
         x.fillStyle = '#888'; x.font = FONT; x.textAlign = 'center';
         x.fillText(('第 ' + (pi + 1) + ' 页 · 打印日期：' + data.dateStr), W / 2, rowY + r.h / 2);
         x.font = FONT; x.textAlign = 'left';
@@ -1841,7 +1845,6 @@ function drawA4PlanToImages(data) {
         return;
       }
       // 普通行
-      flushGoal(rowY);
       var cx2 = pad;
       r.cells.forEach(function(cc) {
         var w = rw(cc);
@@ -1852,7 +1855,6 @@ function drawA4PlanToImages(data) {
       });
       y += r.h;
     });
-    flushGoal(y);          // 页尾即将结束，收尾 rowspan
     out.push(c.toDataURL('image/png'));
   });
   return out;
