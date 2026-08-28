@@ -222,7 +222,8 @@
   .preview-doc table td {
     border: 1px solid #cbd5e1;
     padding: 0.5rem 0.625rem;
-    vertical-align: top;
+    vertical-align: middle;
+    text-align: center;
     line-height: 1.5;
   }
   .preview-doc .doc-title {
@@ -535,7 +536,8 @@
     .preview-doc table td {
       border: 0.5pt solid #333 !important;
       padding: 4px 6px !important;
-      vertical-align: top !important;
+      vertical-align: middle !important;
+      text-align: center !important;
       line-height: 1.4 !important;
       color: #000 !important;
       background: #fff !important;
@@ -1325,7 +1327,7 @@ function updatePreview() {
     html += '<tr><td class="doc-label" colspan="4">发展目标</td></tr>';
     html += '<tr><td colspan="4" style="padding:0;border:none;">';
     html += '<table class="goal-subtable">';
-    html += '<tr><td class="doc-label" style="width:8%;">序号</td><td class="doc-label" style="width:30.67%;">目标类别</td><td class="doc-label" style="width:30.67%;">目标描述</td><td class="doc-label" style="width:30.66%;">达成时间</td></tr>';
+    html += '<tr><td class="doc-label" style="width:5.5rem;">序号</td><td class="doc-label">目标类别</td><td class="doc-label">目标描述</td><td class="doc-label">达成时间</td></tr>';
     goals.forEach((g, i) => {
       html += '<tr>';
       html += '<td>' + (i + 1) + '</td>';
@@ -1343,9 +1345,9 @@ function updatePreview() {
   }
 
   // 审核意见栏
-  html += '<tr><td class="doc-label">部门负责人<br>审核意见</td><td colspan="3" style="height:70px;"></td></tr>';
+  html += '<tr><td class="doc-label">部门负责人<br>审核意见</td><td colspan="3" style="height:96px;"></td></tr>';
   html += '<tr><td class="doc-label">负责人签字</td><td style="height:40px;"></td><td class="doc-label">日期</td><td style="height:40px;"></td></tr>';
-  html += '<tr><td class="doc-label">公司意见</td><td colspan="3" style="height:70px;"></td></tr>';
+  html += '<tr><td class="doc-label">公司意见</td><td colspan="3" style="height:96px;"></td></tr>';
   html += '<tr><td class="doc-label">签字</td><td style="height:40px;"></td><td class="doc-label">日期</td><td style="height:40px;"></td></tr>';
 
   html += '</table>';
@@ -1551,7 +1553,7 @@ function exportWord() {
   let goalsHtml = '';
   if (goals.length > 0) {
     goalsHtml += '<tr style="height:24pt;"><td class="lbl" colspan="4">发展目标</td></tr>';
-    goalsHtml += '<tr style="height:24pt;"><td class="lbl" style="width:8%;">序号</td><td class="lbl" style="width:30.67%;">目标类别</td><td class="lbl" style="width:30.67%;">目标描述</td><td class="lbl" style="width:30.66%;">达成时间</td></tr>';
+    goalsHtml += '<tr style="height:24pt;"><td class="lbl" style="width:10%;">序号</td><td class="lbl" style="width:30%;">目标类别</td><td class="lbl" style="width:30%;">目标描述</td><td class="lbl" style="width:30%;">达成时间</td></tr>';
     goals.forEach(function(g, i) {
       goalsHtml += '<tr style="height:24pt;"><td style="text-align:center;">' + (i+1) + '</td><td style="text-align:center;">' + escapeHtml(g.category) + '</td><td style="text-align:center;">' + (g.description ? escapeHtml(g.description) : '—') + '</td><td style="text-align:center;">' + escapeHtml(g.date) + '</td></tr>';
     });
@@ -1600,11 +1602,11 @@ function exportWord() {
     + goalsHtml
     + '</tbody>'
     + '<tbody style="page-break-inside: avoid;">'
-    + '<tr style="height:60pt;"><td class="lbl side">部门负责人<br>审核意见</td><td colspan="3" style="text-align:center;">　</td></tr>'
+    + '<tr style="height:80pt;"><td class="lbl side">部门负责人<br>审核意见</td><td colspan="3" style="text-align:center;">　</td></tr>'
     + '<tr style="height:30pt;"><td class="lbl side">负责人签字</td><td style="text-align:center;">　</td><td class="lbl side">日期</td><td style="text-align:center;">　</td></tr>'
     + '</tbody>'
     + '<tbody style="page-break-inside: avoid;">'
-    + '<tr style="height:60pt;"><td class="lbl side">公司意见</td><td colspan="3" style="text-align:center;">　</td></tr>'
+    + '<tr style="height:80pt;"><td class="lbl side">公司意见</td><td colspan="3" style="text-align:center;">　</td></tr>'
     + '<tr style="height:30pt;"><td class="lbl side">签字</td><td style="text-align:center;">　</td><td class="lbl side">日期</td><td style="text-align:center;">　</td></tr>'
     + '</tbody>'
     + '</table>'
@@ -1690,8 +1692,8 @@ function drawA4PlanToImages(data) {
   var innerW = W - 2 * pad;
   var valW = (innerW - 2 * colL) / 2;        // 普通值列
   var spanW = innerW - colL;                 // colspan3 值宽
-  var seqW = 54;                    // 序号列：宽度以能完整容纳表头「序号」二字为准
-  var thirdW = Math.round((innerW - seqW) / 3);  // 目标类别/目标描述/达成时间三列等宽均分
+  var seqW = colL;  // 序号列宽对齐上方「发展目标」/下方「实施计划」的左侧标签列宽
+  var thirdW = Math.round((innerW - seqW) / 3);  // 扣除序号列后，目标类别/目标描述/达成时间三列等宽均分
   var catW = thirdW, descW = thirdW, dateW = innerW - seqW - catW - descW;
   var PAGE_H = Math.round(W * 297 / 210);
   var topPad = 54, bottomPad = 46;
@@ -1759,10 +1761,10 @@ function drawA4PlanToImages(data) {
   }
 
   // 部门负责人审核组（keep=1 整体不拆）
-  rows.push({ keep: 1, kind: 'row', cells: [{ t: '部门负责人\n审核意见', l: 1, span: 1 }, { t: '', span: 3 }], minH: 56 });
+  rows.push({ keep: 1, kind: 'row', cells: [{ t: '部门负责人\n审核意见', l: 1, span: 1 }, { t: '', span: 3 }], minH: 100 });
   rows.push({ keep: 1, kind: 'row', cells: [{ t: '负责人签字', l: 1 }, { t: '' }, { t: '日期', l: 1 }, { t: '' }], minH: 30 });
   // 公司意见组（keep=2 整体不拆）
-  rows.push({ keep: 2, kind: 'row', cells: [{ t: '公司意见', l: 1, span: 1 }, { t: '', span: 3 }], minH: 56 });
+  rows.push({ keep: 2, kind: 'row', cells: [{ t: '公司意见', l: 1, span: 1 }, { t: '', span: 3 }], minH: 100 });
   rows.push({ keep: 2, kind: 'row', cells: [{ t: '签字', l: 1 }, { t: '' }, { t: '日期', l: 1 }, { t: '' }], minH: 30 });
 
   // 计算普通行高度
