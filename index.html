@@ -595,9 +595,111 @@
       color: #000 !important;
     }
   }
+
+  /* ===== 填写引导弹窗 ===== */
+  .guide-modal-overlay {
+    position: fixed; inset: 0; z-index: 9999;
+    background: rgba(15, 23, 42, 0.55);
+    display: flex; align-items: center; justify-content: center;
+    padding: 16px;
+    backdrop-filter: blur(2px);
+  }
+  .guide-modal {
+    background: #fff; width: 100%; max-width: 640px;
+    max-height: 92vh; overflow-y: auto;
+    border-radius: 14px; box-shadow: 0 20px 50px rgba(0, 0, 0, 0.25);
+    padding: 24px 22px;
+  }
+  .g-head { display: flex; align-items: center; gap: 12px; }
+  .g-ico {
+    width: 42px; height: 42px; border-radius: 10px; background: #2563eb;
+    color: #fff; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+  .g-title { font-size: 20px; font-weight: 800; color: #0f172a; line-height: 1.2; }
+  .g-sub { font-size: 13px; color: #64748b; }
+  .g-close {
+    margin-left: auto; border: none; background: transparent; font-size: 24px;
+    color: #94a3b8; cursor: pointer; line-height: 1; padding: 4px 8px;
+  }
+  .g-close:hover { color: #334155; }
+  .g-desc {
+    margin-top: 14px; font-size: 14px; color: #475569; line-height: 1.7;
+    background: #f8fafc; border: 1px solid #e2e8f0; padding: 10px 12px; border-radius: 10px;
+  }
+  .g-steps { margin-top: 16px; background: #f1f5f9; border: 1px solid #e2e8f0; border-radius: 12px; padding: 14px 16px; }
+  .g-steps-title { font-size: 14px; font-weight: 700; color: #0f172a; margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
+  .g-step { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 10px; }
+  .g-step:last-child { margin-bottom: 0; }
+  .g-badge {
+    width: 24px; height: 24px; border-radius: 9999px; background: #2563eb; color: #fff;
+    font-size: 13px; font-weight: 700; display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; margin-top: 1px;
+  }
+  .g-step-text { font-size: 14px; color: #334155; line-height: 1.6; }
+  .g-hl { color: #2563eb; font-weight: 600; }
+  .g-bold { font-weight: 700; color: #0f172a; }
+  .g-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 16px; }
+  .g-card { border-radius: 12px; padding: 14px 16px; }
+  .g-card-label { font-size: 12.5px; display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
+  .g-card-val { font-size: 24px; font-weight: 800; }
+  .g-card.deadline { background: #fef3c7; }
+  .g-card.deadline .g-card-label, .g-card.deadline .g-card-val { color: #b45309; }
+  .g-card.target { background: #dbeafe; }
+  .g-card.target .g-card-label, .g-card.target .g-card-val { color: #1d4ed8; }
+  .g-actions { margin-top: 20px; display: flex; justify-content: center; }
+  .g-gobtn {
+    background: #2563eb; color: #fff; border: none; border-radius: 10px;
+    font-size: 15px; font-weight: 600; padding: 11px 30px; cursor: pointer;
+  }
+  .g-gobtn:hover { background: #1d4ed8; }
+  .guide-hidden { display: none !important; }
+  @media (max-width: 520px) { .g-cards { grid-template-columns: 1fr; } }
+  @media print { .guide-modal-overlay { display: none !important; } }
 </style>
 </head>
 <body>
+
+<!-- 填写引导弹窗：让员工重视并规范填写 -->
+<div id="guideModal" class="guide-modal-overlay" role="dialog" aria-modal="true" aria-label="填表提示">
+  <div class="guide-modal">
+    <div class="g-head">
+      <div class="g-ico">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2h8l6 6v14H6z"/><path d="M14 2v6h6"/><path d="M9 13h6M9 17h6"/></svg>
+      </div>
+      <div>
+        <div class="g-title">员工个人发展计划</div>
+        <div class="g-sub">填写提示</div>
+      </div>
+      <button class="g-close" onclick="closeGuide()" aria-label="关闭">&times;</button>
+    </div>
+
+    <p class="g-desc">个人发展计划的制定是公司推进人才梯队建设、促进员工成长的重要依据。请您结合自身所学与未来发展方向，<strong>认真、如实、完整</strong>地填写，切忌敷衍了事。</p>
+
+    <div class="g-steps">
+      <div class="g-steps-title">📌 操作步骤</div>
+      <div class="g-step"><span class="g-badge">1</span><div class="g-step-text">使用电脑打开表单，<strong class="g-bold">逐项如实填写</strong>信息与个人发展目标</div></div>
+      <div class="g-step"><span class="g-badge">2</span><div class="g-step-text">填写完成核对无误后，点击<span class="g-hl">「提交保存数据」</span>提交系统存档</div></div>
+      <div class="g-step"><span class="g-badge">3</span><div class="g-step-text">提交成功后点击<span class="g-hl">「导出 Word」</span>，用于打印纸质版</div></div>
+      <div class="g-step"><span class="g-badge">4</span><div class="g-step-text">打印后交<b class="g-bold">部门负责人填写审核意见并签字</b></div></div>
+      <div class="g-step"><span class="g-badge">5</span><div class="g-step-text">以<b class="g-bold">项目部为单位</b>统一报送留档</div></div>
+    </div>
+
+    <div class="g-cards">
+      <div class="g-card deadline">
+        <div class="g-card-label">⏰ 截止时间</div>
+        <div class="g-card-val">9月15日</div>
+      </div>
+      <div class="g-card target">
+        <div class="g-card-label">📍 提交至</div>
+        <div class="g-card-val">吴琳音</div>
+      </div>
+    </div>
+
+    <div class="g-actions">
+      <button class="g-gobtn" onclick="closeGuide()">我知道了，开始填写</button>
+    </div>
+  </div>
+</div>
 
 <!-- 顶部标题栏 -->
 <header class="bg-[#1e3a5f] text-white py-4 px-4 shadow-lg sticky top-0 z-30">
@@ -894,6 +996,16 @@
 </div>
 
 <script>
+// ========== 填写引导弹窗 ==========
+function closeGuide() {
+  var m = document.getElementById('guideModal');
+  if (m) m.classList.add('guide-hidden');
+}
+(function showGuide() {
+  var m = document.getElementById('guideModal');
+  if (m) m.classList.remove('guide-hidden');
+})();
+
 // ========== 配置区 ==========
 // 如需启用数据库存储，请配置以下Supabase信息：
 // const SUPABASE_URL = 'https://你的项目ID.supabase.co';
