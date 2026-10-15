@@ -125,6 +125,30 @@
     font-size: 0.8125rem;
     font-weight: 700;
   }
+  .goal-fixed-row {
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+    padding: 0.625rem 0.75rem;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 0.625rem;
+    background: #f8fafc;
+  }
+  .goal-fixed-cat {
+    flex: 0 0 6.75rem;
+    font-size: 0.875rem;
+    font-weight: 700;
+    color: #1e293b;
+    white-space: nowrap;
+  }
+  .goal-fixed-row .goal-description { flex: 1 1 auto; min-width: 0; }
+  .goal-fixed-row .goal-date { flex: 0 0 11.5rem; min-width: 0; }
+  @media (max-width: 640px) {
+    .goal-fixed-row { flex-wrap: wrap; }
+    .goal-fixed-cat { flex: 0 0 100%; }
+    .goal-fixed-row .goal-description { flex: 1 1 100%; }
+    .goal-fixed-row .goal-date { flex: 1 1 100%; }
+  }
   .btn {
     display: inline-flex;
     align-items: center;
@@ -836,26 +860,33 @@
         </div>
       </section>
 
-      <!-- 自我评判 -->
+      <!-- 现有情况 -->
       <section class="section-card">
         <div class="section-title">
           <span class="badge">2</span>
-          自我评判
+          现有情况
         </div>
-        <div class="p-4 sm:p-5">
-          <div class="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-3 text-xs text-slate-600 leading-relaxed">
-            <p class="font-semibold text-slate-700 mb-1">填写引导（点击展开/收起示例）：</p>
-            <details>
-              <summary class="cursor-pointer text-blue-600 font-medium">查看填写示例</summary>
-              <div class="mt-2 space-y-1">
-                <p>1. 现有专业优势（如擅长的专业领域、持有的证书职称等）</p>
-                <p>2. 能力短板（如技术能力、管理能力、沟通协调等方面的不足）</p>
-                <p>3. 需要提升的方向（结合公司业务发展需求）</p>
-              </div>
-            </details>
+        <div class="p-4 sm:p-5 space-y-3">
+          <div>
+            <label for="eduLevel" class="form-label required-mark">学历情况</label>
+            <input id="eduLevel" type="text" class="form-input" placeholder="如：本科、硕士、大专；如无请填「无」" oninput="updatePreview()" required>
           </div>
-          <textarea id="selfEvaluation" class="form-input" rows="6" placeholder="请客观评价自身能力短板与现有优势，包括但不限于：&#10;1. 现有专业优势（如擅长的专业领域、持有的证书职称等）&#10;2. 能力短板（如技术能力、管理能力、沟通协调等方面的不足）&#10;3. 需要提升的方向（结合公司业务发展需求）" required></textarea>
-          <div class="char-counter"><span id="charCount">0</span> 字</div>
+          <div>
+            <label for="titleLevel" class="form-label required-mark">职称情况</label>
+            <input id="titleLevel" type="text" class="form-input" placeholder="如：高级工程师、工程师；如无请填「无」" oninput="updatePreview()" required>
+          </div>
+          <div>
+            <label for="qualification" class="form-label required-mark">职业资格</label>
+            <input id="qualification" type="text" class="form-input" placeholder="如：国家注册监理工程师、一级注册造价工程师；如无请填「无」" oninput="updatePreview()" required>
+          </div>
+          <div>
+            <label for="proAbility" class="form-label required-mark">现有专业能力</label>
+            <textarea id="proAbility" class="form-input" rows="4" placeholder="须写明两部分：①当前具备的专业能力（熟悉领域、可独立承担的工作）②存在的不足（能力短板）；本栏不可填「无」" oninput="updatePreview()" required></textarea>
+            <div class="bg-slate-50 border border-slate-200 rounded-lg p-3 mt-2 text-xs text-slate-500 leading-relaxed">
+              <p class="font-semibold text-slate-600 mb-1">填写示例（须同时写明「具备的能力」和「存在的不足」）：</p>
+              <p>示例：从事房屋建筑工程监理 5 年，熟悉土建专业施工工艺与验收规范，能独立完成旁站、平行检验、隐蔽验收及监理资料编制；不足在于市政、消防等跨专业经验较少，成本管控与合同管理能力有待提升。</p>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -895,18 +926,12 @@
         <div class="section-title">
           <span class="badge">4</span>
           发展目标
-          <span class="ml-auto text-xs font-normal text-slate-400" id="goalCount">共 0 条</span>
+          <span class="ml-auto text-xs font-normal text-slate-400">五栏均须填写，如不适用请选择「无」</span>
         </div>
         <div class="p-4 sm:p-5">
-          <div id="goalsContainer" class="space-y-3">
-            <!-- 动态目标条目 -->
+          <div id="goalsContainer" class="space-y-2">
+            <!-- 固定五栏由 JS 渲染 -->
           </div>
-          <button type="button" class="btn btn-outline w-full mt-3" id="addGoalBtn">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-            </svg>
-            添加发展目标
-          </button>
           <div class="mt-4">
             <label for="implementationPlan" class="form-label required-mark">初步实施计划（一套，覆盖上述所有目标）</label>
             <textarea id="implementationPlan" class="form-input" rows="3" placeholder="可按短期、中期、长期梳理提升步骤，写明提升措施及时间安排。" oninput="updatePreview()" required></textarea>
@@ -1020,13 +1045,14 @@ const DEPARTMENTS = [
   '物业服务项目部','餐饮服务项目部','党政综合办','财务部'
 ];
 
-// ========== 目标类别选项 ==========
+// ========== 固定目标栏目 ==========
+const FIXED_GOAL_CATEGORIES = ['学历提升', '新获证书', '新获职称', '专业技术方向精进', '其他'];
 const GOAL_CATEGORIES = [
   { group: '学历提升', items: ['专升本','本升硕','硕升博'] },
   { group: '新获证书', items: ['国家注册监理工程师','一级注册造价工程师','中级注册安全工程师','一级注册消防工程师','全国咨询工程师','其他证书'] },
   { group: '新获职称', items: ['正高级','高级','中级','初级','技术员'] },
-  { group: '专业技术方向精进', items: ['专业技术方向精进（请在目标描述中说明）'] },
-  { group: '其他', items: ['其他（请在目标描述中说明）'] },
+  { group: '专业技术方向精进', items: [] },
+  { group: '其他', items: [] },
 ];
 
 // ========== Supabase REST 辅助（原生 fetch，不依赖外部库） ==========
@@ -1062,9 +1088,9 @@ function init() {
   loadDraft(); // 恢复上次未完成的填写内容
   loadDepartments();
   bindEvents();
-  if (!draftGoalsRestored) addGoal();
+  // 固定五栏始终渲染；loadDraft 若已恢复则不复渲染
+  if (!draftGoalsRestored) renderFixedGoals();
   updatePreview();
-  updateGoalCount();
   setupImageViewer();
 }
 
@@ -1151,11 +1177,7 @@ function bindEvents() {
     updatePreview();
   });
 
-  // 自我评判字数统计
-  document.getElementById('selfEvaluation').addEventListener('input', function() {
-    document.getElementById('charCount').textContent = this.value.length;
-    updatePreview();
-  });
+  // 现有情况字段输入已由 oninput="updatePreview()" 触发预览刷新，无需额外绑定
 
   // 发展路径选择
   document.querySelectorAll('input[name="devPath"]').forEach(radio => {
@@ -1165,9 +1187,6 @@ function bindEvents() {
       updatePreview();
     });
   });
-
-  // 添加目标
-  document.getElementById('addGoalBtn').addEventListener('click', addGoal);
 
   // 导出Word
   document.getElementById('exportWordBtn').addEventListener('click', exportWord);
@@ -1197,7 +1216,7 @@ function bindEvents() {
 function scheduleDraft(e) {
   var t = e && e.target;
   if (!t) return;
-  if (t.id && ['name', 'department', 'projectName', 'selfEvaluation'].indexOf(t.id) > -1) { saveDraft(); return; }
+  if (t.id && ['name', 'department', 'projectName', 'eduLevel', 'titleLevel', 'qualification', 'proAbility'].indexOf(t.id) > -1) { saveDraft(); return; }
   if (t.name === 'devPath' || (t.closest && t.closest('#goalsContainer'))) saveDraft();
 }
 
@@ -1211,7 +1230,10 @@ function saveDraft() {
         name: document.getElementById('name').value,
         department: document.getElementById('department').value,
         projectName: document.getElementById('projectName').value,
-        selfEvaluation: document.getElementById('selfEvaluation').value,
+        eduLevel: document.getElementById('eduLevel').value,
+        titleLevel: document.getElementById('titleLevel').value,
+        qualification: document.getElementById('qualification').value,
+        proAbility: document.getElementById('proAbility').value,
         devPath: devPathEl ? devPathEl.value : '',
         plan: collectPlan(),
         goals: collectGoals()
@@ -1240,10 +1262,10 @@ function loadDraft() {
     }
   }
   if (d.projectName) document.getElementById('projectName').value = d.projectName;
-  if (d.selfEvaluation) {
-    document.getElementById('selfEvaluation').value = d.selfEvaluation;
-    document.getElementById('charCount').textContent = d.selfEvaluation.length;
-  }
+  if (d.eduLevel) document.getElementById('eduLevel').value = d.eduLevel;
+  if (d.titleLevel) document.getElementById('titleLevel').value = d.titleLevel;
+  if (d.qualification) document.getElementById('qualification').value = d.qualification;
+  if (d.proAbility) document.getElementById('proAbility').value = d.proAbility;
   if (d.devPath) {
     var r = document.querySelector('input[name="devPath"][value="' + d.devPath + '"]');
     if (r) { r.checked = true; if (r.closest) r.closest('.radio-card').classList.add('selected'); }
@@ -1252,19 +1274,17 @@ function loadDraft() {
     var pe = document.getElementById('implementationPlan');
     if (pe) pe.value = d.plan;
   }
-  if (d.goals && d.goals.length) {
-    document.getElementById('goalsContainer').innerHTML = '';
-    goalCounter = 0;
-    d.goals.forEach(function(g) {
-      addGoal();
-      var cards = document.querySelectorAll('#goalsContainer .goal-card');
-      var el = cards[cards.length - 1];
-      if (!el) return;
-      var cs = el.querySelector('.goal-category');
-      if (cs && g.category) { cs.value = g.category; if (onGoalCategoryChange) onGoalCategoryChange(cs); }
-      var dv = el.querySelector('.goal-description'); if (dv) dv.value = g.description || '';
-      var dt = el.querySelector('.goal-date'); if (dt) dt.value = g.date || '';
-    });
+  if (d.goals) {
+    // 兼容旧草稿（goals 数组）与当前固定五栏，映射到固定栏目
+    var filled = {};
+    if (Array.isArray(d.goals)) {
+      d.goals.forEach(function(g) {
+        if (g && g.category) filled[g.category] = { description: g.description || '', date: g.date || '' };
+      });
+    } else if (typeof d.goals === 'object') {
+      filled = d.goals;
+    }
+    renderFixedGoals(filled);
     draftGoalsRestored = true;
   }
 }
@@ -1288,116 +1308,83 @@ function togglePreview() {
   }
 }
 
-// ========== 动态目标管理 ==========
-let goalCounter = 0;
-
-function onGoalCategoryChange(selectEl) {
-  var goalDiv = selectEl.closest('.goal-card');
-  var descInput = goalDiv.querySelector('.goal-description');
-  var descLabel = goalDiv.querySelector('.goal-desc-label');
-  var val = selectEl.value || '';
-  var needDesc = val.indexOf('专业技术方向精进') > -1 || val.indexOf('其他') > -1;
-  if (needDesc) {
-    descInput.setAttribute('required', '');
-    descLabel.classList.add('required-mark');
-    descInput.placeholder = '请填写具体方向或内容';
-  } else {
-    descInput.removeAttribute('required');
-    descLabel.classList.remove('required-mark');
-    descInput.placeholder = '选填，如：报考XX大学工程管理硕士';
-  }
-}
-
-function addGoal() {
-  goalCounter++;
-  const id = goalCounter;
+// ========== 固定目标栏目管理 ==========
+function renderFixedGoals(values) {
   const container = document.getElementById('goalsContainer');
-
-  const goalDiv = document.createElement('div');
-  goalDiv.className = 'goal-card';
-  goalDiv.dataset.goalId = id;
-  goalDiv.dataset.goalIndex = container.children.length;
-
-  // 构建目标类别下拉选项
-  let categoryOptions = '<option value="">请选择目标类别</option>';
-  GOAL_CATEGORIES.forEach(cat => {
-    const opts = cat.items.map(item => {
-      const val = cat.group + ' - ' + item;
-      return '<option value="' + val + '">' + val + '</option>';
-    }).join('');
-    categoryOptions += '<optgroup label="' + cat.group + '">' + opts + '</optgroup>';
-  });
-
-  goalDiv.innerHTML = `
-    <div class="goal-header">
-      <span class="goal-number">${container.children.length + 1}</span>
-      <button type="button" class="btn btn-danger" onclick="removeGoal(${id})">
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M1 7h22M9 7V4a1 1 0 011-1h4a1 1 0 011 1v3"/>
-        </svg>
-        删除
-      </button>
-    </div>
-    <div class="space-y-3">
-      <div>
-        <label class="form-label required-mark">目标类别</label>
-        <select class="form-input goal-category" onchange="onGoalCategoryChange(this); updatePreview()" required>${categoryOptions}</select>
-      </div>
-      <div>
-        <label class="form-label goal-desc-label">目标描述</label>
-        <input type="text" class="form-input goal-description" placeholder="选择「其他」或「专业技术方向精进」时必填，其他类别选填" oninput="updatePreview()">
-      </div>
-      <div>
-        <label class="form-label required-mark">目标达成时间</label>
-        <input type="text" class="form-input goal-date" placeholder="如：2026年下半年、2027年、1-2年内" oninput="updatePreview()" required>
-      </div>
-    </div>
-  `;
-
-  container.appendChild(goalDiv);
-  renumberGoals();
-  updateGoalCount();
-  updatePreview();
-}
-
-function removeGoal(id) {
-  const div = document.querySelector('[data-goal-id="' + id + '"]');
-  if (!div) return;
-  const container = document.getElementById('goalsContainer');
-  if (container.children.length <= 1) {
-    showToast('至少保留一条发展目标', 'error');
-    return;
-  }
-  div.remove();
-  renumberGoals();
-  updateGoalCount();
-  updatePreview();
-}
-
-function renumberGoals() {
-  const goals = document.querySelectorAll('#goalsContainer .goal-card');
-  goals.forEach((g, i) => {
-    const num = g.querySelector('.goal-number');
-    if (num) num.textContent = i + 1;
-    g.dataset.goalIndex = i;
+  if (!container) return;
+  container.innerHTML = '';
+  const filled = values && typeof values === 'object' ? values : {};
+  FIXED_GOAL_CATEGORIES.forEach(cat => {
+    const v = filled[cat] || {};
+    const row = document.createElement('div');
+    row.className = 'goal-fixed-row';
+    row.dataset.category = cat;
+    const g = GOAL_CATEGORIES.find(x => x.group === cat);
+    const isDropdown = g && g.items && g.items.length > 0;
+    let descHtml;
+    if (isDropdown) {
+      let opts = '<option value="">请选择（必填）</option>';
+      g.items.forEach(it => {
+        opts += '<option value="' + it + '"' + (v.description === it ? ' selected' : '') + '>' + it + '</option>';
+      });
+      opts += '<option value="无"' + (v.description === '无' ? ' selected' : '') + '>无</option>';
+      descHtml = '<select class="form-input goal-description" onchange="updatePreview()">' + opts + '</select>';
+    } else {
+      descHtml = '<input type="text" class="form-input goal-description" placeholder="如：' + goalPlaceholder(cat) + '（必填，如不适用请填「无」）" oninput="updatePreview()">';
+    }
+    row.innerHTML =
+      '<div class="goal-fixed-cat">' + cat + '</div>' +
+      descHtml +
+      '<input type="text" class="form-input goal-date" placeholder="达成时间，如：2027年（选填）" oninput="updatePreview()">';
+    const dv = row.querySelector('.goal-description');
+    if (v.description) dv.value = v.description;
+    const dt = row.querySelector('.goal-date');
+    if (v.date) dt.value = v.date;
+    container.appendChild(row);
   });
 }
 
-function updateGoalCount() {
-  const count = document.querySelectorAll('#goalsContainer .goal-card').length;
-  document.getElementById('goalCount').textContent = '共 ' + count + ' 条';
+function goalPlaceholder(cat) {
+  const g = GOAL_CATEGORIES.find(x => x.group === cat);
+  if (g && g.items.length) return g.items[0];
+  return '填写具体目标';
 }
 
-// 收集目标数据
+// 收集「现有情况」四字段（学历、职称、职业资格、现有专业能力）
+function collectPresentSituation() {
+  function v(id) { const el = document.getElementById(id); return el ? el.value.trim() : ''; }
+  return { edu: v('eduLevel'), title: v('titleLevel'), qual: v('qualification'), ability: v('proAbility') };
+}
+
+// 将现有情况拼成带标签的段落文本（sep 用于换行，如 '<br>' 或 '\n'）
+function formatPresentSituation(p, sep) {
+  const s = sep || '\n';
+  return '学历情况：' + (p.edu || '无') + s +
+         '职称情况：' + (p.title || '无') + s +
+         '职业资格：' + (p.qual || '无') + s +
+         '现有专业能力：' + (p.ability || '无');
+}
+
+// 判断「现有专业能力」是否写明了不足（兼容多种常见表述）
+function hasShortcoming(text) {
+  const keys = ['不足', '短板', '欠缺', '缺乏', '缺少', '薄弱', '偏弱', '不够', '尚浅', '有限', '弱项',
+    '不完整', '不全面', '不系统', '尚不', '较少', '偏少',
+    '有待提升', '有待加强', '有待提高', '有待积累', '待提升', '待加强', '待提高',
+    '需要提升', '需要加强', '还需', '尚需', '有待'];
+  for (let i = 0; i < keys.length; i++) {
+    if (text.indexOf(keys[i]) > -1) return true;
+  }
+  return false;
+}
+
+// 收集目标数据（固定五栏，空栏也保留，导出时显示「无」）
 function collectGoals() {
   const goals = [];
-  document.querySelectorAll('#goalsContainer .goal-card').forEach(g => {
-    const category = g.querySelector('.goal-category')?.value || '';
-    const description = g.querySelector('.goal-description')?.value || '';
-    const date = g.querySelector('.goal-date')?.value || '';
-    if (category || description || date) {
-      goals.push({ category, description, date });
-    }
+  document.querySelectorAll('#goalsContainer .goal-fixed-row').forEach(row => {
+    const category = row.dataset.category || '';
+    const description = row.querySelector('.goal-description')?.value || '';
+    const date = row.querySelector('.goal-date')?.value || '';
+    goals.push({ category, description, date });
   });
   return goals;
 }
@@ -1413,7 +1400,7 @@ function updatePreview() {
   const name = document.getElementById('name').value || '　　　　';
   const dept = document.getElementById('department').value || '　　　　';
   const projectName = document.getElementById('projectName').value || '';
-  const selfEval = document.getElementById('selfEvaluation').value || '';
+  const present = collectPresentSituation();
   const devPathEl = document.querySelector('input[name="devPath"]:checked');
   const devPath = devPathEl ? devPathEl.value : '';
   const goals = collectGoals();
@@ -1430,35 +1417,32 @@ function updatePreview() {
     html += '<tr><td class="doc-label">项目名称</td><td colspan="3">' + escapeHtml(projectName || '　　　　') + '</td></tr>';
   }
 
-  // 自我评判
-  html += '<tr><td class="doc-label">自我评判</td><td colspan="3" style="min-height:80px;">' + (escapeHtml(selfEval) || '　') + '</td></tr>';
+  // 现有情况
+  html += '<tr><td class="doc-label">现有情况</td><td colspan="3" style="min-height:96px;">' + escapeHtml(formatPresentSituation(present, '\n')).replace(/\n/g, '<br>') + '</td></tr>';
 
   // 发展路径
   html += '<tr><td class="doc-label">发展路径</td><td colspan="3">' + escapeHtml(devPath || '　　　　') + '</td></tr>';
 
-  // 发展目标（多条，每行自带达成时间，一一对应；共用一套实施计划）
+  // 发展目标：固定五栏（类别固定），每栏描述/达成时间选填，空栏显示「无」
   // 采用独立嵌套子表 + 固定列宽（序号列容纳表头为准，其余三列等宽），
   // 避免与外层基本信息表 colspan 互相拉扯导致多条目标时错乱或挤压。
-  if (goals.length > 0) {
-    html += '<tr><td class="doc-label" colspan="4">发展目标</td></tr>';
-    html += '<tr><td colspan="4" style="padding:0;border:none;">';
-    html += '<table class="goal-subtable">';
-    html += '<tr><td class="doc-label" style="width:5.5rem;">序号</td><td class="doc-label">目标类别</td><td class="doc-label">目标描述</td><td class="doc-label">达成时间</td></tr>';
-    goals.forEach((g, i) => {
-      html += '<tr>';
-      html += '<td>' + (i + 1) + '</td>';
-      html += '<td>' + escapeHtml(g.category || '　') + '</td>';
-      html += '<td>' + (g.description ? escapeHtml(g.description) : '—') + '</td>';
-      html += '<td>' + escapeHtml(g.date || '　') + '</td>';
-      html += '</tr>';
-    });
-    html += '</table>';
-    html += '</td></tr>';
-    // 实施计划：共用一套，放回外层标签行，与「项目名称/发展路径/公司意见」等四字标签同一列宽、文字齐平
-    html += '<tr><td class="doc-label">实施计划</td><td colspan="3">' + (plan ? escapeHtml(plan).replace(/\n/g, '<br>') : '　') + '</td></tr>';
-  } else {
-    html += '<tr><td class="doc-label">发展目标</td><td colspan="3" style="text-align:center;color:#94a3b8;">暂无目标</td></tr>';
-  }
+  html += '<tr><td class="doc-label" colspan="4">发展目标</td></tr>';
+  html += '<tr><td colspan="4" style="padding:0;border:none;">';
+  html += '<table class="goal-subtable">';
+  html += '<tr><td class="doc-label" style="width:5.5rem;">序号</td><td class="doc-label">目标类别</td><td class="doc-label">目标描述</td><td class="doc-label">达成时间</td></tr>';
+  FIXED_GOAL_CATEGORIES.forEach((cat, i) => {
+    const g = goals.find(x => x.category === cat) || {};
+    html += '<tr>';
+    html += '<td>' + (i + 1) + '</td>';
+    html += '<td>' + cat + '</td>';
+    html += '<td>' + (g.description ? escapeHtml(g.description) : '无') + '</td>';
+    html += '<td>' + (g.date ? escapeHtml(g.date) : '无') + '</td>';
+    html += '</tr>';
+  });
+  html += '</table>';
+  html += '</td></tr>';
+  // 实施计划：共用一套，放回外层标签行，与「项目名称/发展路径/公司意见」等四字标签同一列宽、文字齐平
+  html += '<tr><td class="doc-label">实施计划</td><td colspan="3">' + (plan ? escapeHtml(plan).replace(/\n/g, '<br>') : '　') + '</td></tr>';
 
   // 审核意见栏
   html += '<tr><td class="doc-label">部门负责人<br>审核意见</td><td colspan="3" style="height:96px;"></td></tr>';
@@ -1482,7 +1466,6 @@ function escapeHtml(str) {
 function validateForm() {
   const name = document.getElementById('name').value.trim();
   const dept = document.getElementById('department').value;
-  const selfEval = document.getElementById('selfEvaluation').value.trim();
   const devPathEl = document.querySelector('input[name="devPath"]:checked');
 
   if (!name) { showToast('请填写姓名', 'error'); document.getElementById('name').focus(); return false; }
@@ -1492,17 +1475,31 @@ function validateForm() {
     document.getElementById('projectName').focus();
     return false;
   }
-  if (!selfEval) { showToast('请填写自我评判', 'error'); document.getElementById('selfEvaluation').focus(); return false; }
+  const present = collectPresentSituation();
+  if (!present.edu) { showToast('请填写学历情况（如无请填「无」）', 'error'); document.getElementById('eduLevel').focus(); return false; }
+  if (!present.title) { showToast('请填写职称情况（如无请填「无」）', 'error'); document.getElementById('titleLevel').focus(); return false; }
+  if (!present.qual) { showToast('请填写职业资格（如无请填「无」）', 'error'); document.getElementById('qualification').focus(); return false; }
+  if (!present.ability) { showToast('请填写现有专业能力（须写明具备的能力和存在的不足）', 'error'); document.getElementById('proAbility').focus(); return false; }
+  const abilityClean = present.ability.replace(/[。.；;，,、\s]/g, '');
+  if (['无', '暂无', '没有', '无无'].indexOf(abilityClean) > -1) {
+    showToast('现有专业能力不能填「无」，请写明具备的能力和存在的不足', 'error');
+    document.getElementById('proAbility').focus();
+    return false;
+  }
+  if (!hasShortcoming(present.ability)) {
+    showToast('现有专业能力请写明存在的不足（能力短板），如：不足在于……有提升的空间', 'error');
+    document.getElementById('proAbility').focus();
+    return false;
+  }
   if (!devPathEl) { showToast('请选择发展路径', 'error'); return false; }
 
   const goals = collectGoals();
-  if (goals.length === 0) { showToast('请至少添加一条发展目标', 'error'); return false; }
-  for (let i = 0; i < goals.length; i++) {
-    const g = goals[i];
-    if (!g.category) { showToast('第' + (i+1) + '条目标请选择目标类别', 'error'); return false; }
-    var needDesc = g.category.indexOf('专业技术方向精进') > -1 || g.category.indexOf('其他') > -1;
-    if (needDesc && !g.description) { showToast('第' + (i+1) + '条目标请填写目标描述', 'error'); return false; }
-    if (!g.date) { showToast('第' + (i+1) + '条目标请填写达成时间', 'error'); return false; }
+  const emptyCat = goals.find(g => !(g.description && g.description.trim()));
+  if (emptyCat) {
+    showToast('请填写【' + emptyCat.category + '】目标（如不适用请选择「无」）', 'error');
+    const row = document.querySelector('#goalsContainer .goal-fixed-row[data-category="' + emptyCat.category + '"]');
+    if (row) { const d = row.querySelector('.goal-description'); if (d) d.focus(); }
+    return false;
   }
   if (!collectPlan().trim()) { showToast('请填写初步实施计划', 'error'); var pe = document.getElementById('implementationPlan'); if (pe) pe.focus(); return false; }
 
@@ -1521,7 +1518,7 @@ async function submitForm() {
     name: document.getElementById('name').value.trim(),
     department: document.getElementById('department').value,
     project_name: document.getElementById('department').value === '监理项目部' ? document.getElementById('projectName').value.trim() : null,
-    self_evaluation: document.getElementById('selfEvaluation').value.trim(),
+    self_evaluation: formatPresentSituation(collectPresentSituation(), '\n'),
     development_path: document.querySelector('input[name="devPath"]:checked').value,
     implementation_plan: collectPlan(),
     goals: collectGoals()
@@ -1611,15 +1608,15 @@ function resetForm() {
   document.getElementById('department').value = '';
   document.getElementById('projectName').value = '';
   document.getElementById('projectNameWrapper').style.display = 'none';
-  document.getElementById('selfEvaluation').value = '';
-  document.getElementById('charCount').textContent = '0';
+  document.getElementById('eduLevel').value = '';
+  document.getElementById('titleLevel').value = '';
+  document.getElementById('qualification').value = '';
+  document.getElementById('proAbility').value = '';
   document.querySelectorAll('input[name="devPath"]').forEach(r => r.checked = false);
   document.querySelectorAll('.radio-card').forEach(c => c.classList.remove('selected'));
   document.getElementById('goalsContainer').innerHTML = '';
-  goalCounter = 0;
-  addGoal();
+  renderFixedGoals();
   updatePreview();
-  updateGoalCount();
 
   wordExported = false;
   draftGoalsRestored = false;
@@ -1655,7 +1652,8 @@ function exportWord() {
   const name = document.getElementById('name').value || '　';
   const dept = document.getElementById('department').value || '　';
   const projectName = document.getElementById('projectName').value || '';
-  const selfEval = document.getElementById('selfEvaluation').value || '　';
+  const present = collectPresentSituation();
+  const presentText = formatPresentSituation(present, '\n');
   const devPathEl = document.querySelector('input[name="devPath"]:checked');
   const devPath = devPathEl ? devPathEl.value : '　';
   const goals = collectGoals();
@@ -1667,17 +1665,13 @@ function exportWord() {
   }
 
   let goalsHtml = '';
-  if (goals.length > 0) {
-    goalsHtml += '<tr style="height:24pt;"><td class="lbl" colspan="4">发展目标</td></tr>';
-    goalsHtml += '<tr style="height:24pt;"><td class="lbl" style="width:10%;">序号</td><td class="lbl" style="width:30%;">目标类别</td><td class="lbl" style="width:30%;">目标描述</td><td class="lbl" style="width:30%;">达成时间</td></tr>';
-    goals.forEach(function(g, i) {
-      goalsHtml += '<tr style="height:24pt;"><td style="text-align:center;">' + (i+1) + '</td><td style="text-align:center;">' + escapeHtml(g.category) + '</td><td style="text-align:center;">' + (g.description ? escapeHtml(g.description) : '—') + '</td><td style="text-align:center;">' + escapeHtml(g.date) + '</td></tr>';
-    });
-    // 实施计划：共用一套
-    goalsHtml += '<tr style="height:36pt;"><td class="lbl">实施计划</td><td style="text-align:center;" colspan="3">' + escapeHtml(plan).replace(/\n/g, '<br>') + '</td></tr>';
-  } else {
-    goalsHtml = '<tr style="height:28pt;"><td class="lbl">发展目标</td><td colspan="3">　</td></tr>';
-  }
+  goalsHtml += '<tr style="height:24pt;"><td class="lbl" colspan="4">发展目标</td></tr>';
+  goalsHtml += '<tr style="height:24pt;"><td class="lbl" style="width:10%;">序号</td><td class="lbl" style="width:30%;">目标类别</td><td class="lbl" style="width:30%;">目标描述</td><td class="lbl" style="width:30%;">达成时间</td></tr>';
+  FIXED_GOAL_CATEGORIES.forEach(function(cat, i) {
+    const g = goals.find(x => x.category === cat) || {};
+    goalsHtml += '<tr style="height:24pt;"><td style="text-align:center;">' + (i+1) + '</td><td style="text-align:center;">' + cat + '</td><td style="text-align:center;">' + (g.description ? escapeHtml(g.description) : '无') + '</td><td style="text-align:center;">' + (g.date ? escapeHtml(g.date) : '无') + '</td></tr>';
+  });
+  goalsHtml += '<tr style="height:36pt;"><td class="lbl">实施计划</td><td style="text-align:center;" colspan="3">' + escapeHtml(plan).replace(/\n/g, '<br>') + '</td></tr>';
 
   var printDate = new Date();
   var dateStr = printDate.getFullYear() + '-' + String(printDate.getMonth()+1).padStart(2,'0') + '-' + String(printDate.getDate()).padStart(2,'0');
@@ -1713,7 +1707,7 @@ function exportWord() {
     + '<tbody>'
     + '<tr style="height:28pt;"><td class="lbl side">姓名</td><td style="width:35%;text-align:center;">' + escapeHtml(name) + '</td><td class="lbl side">部门</td><td style="width:35%;text-align:center;">' + escapeHtml(dept) + '</td></tr>'
     + projectRow
-    + '<tr style="height:60pt;"><td class="lbl side">自我评判</td><td colspan="3" style="text-align:center;">' + escapeHtml(selfEval).replace(/\n/g, '<br>') + '</td></tr>'
+    + '<tr style="height:80pt;"><td class="lbl side">现有情况</td><td colspan="3" style="text-align:center;">' + escapeHtml(presentText).replace(/\n/g, '<br>') + '</td></tr>'
     + '<tr style="height:28pt;"><td class="lbl side">发展路径</td><td colspan="3" style="text-align:center;">' + escapeHtml(devPath) + '</td></tr>'
     + goalsHtml
     + '</tbody>'
@@ -1768,7 +1762,8 @@ function exportImage() {
   const name = document.getElementById('name').value || '　';
   const dept = document.getElementById('department').value || '　';
   const projectName = document.getElementById('projectName').value || '';
-  const selfEval = document.getElementById('selfEvaluation').value || '　';
+  const present = collectPresentSituation();
+  const presentText = formatPresentSituation(present, '\n');
   const devPathEl = document.querySelector('input[name="devPath"]:checked');
   const devPath = devPathEl ? devPathEl.value : '　';
   const goals = collectGoals();
@@ -1780,7 +1775,7 @@ function exportImage() {
   showToast('正在生成图片，请稍候...', 'info');
 
   try {
-    var imgData = drawA4PlanToImages({ name: name, dept: dept, projectName: projectName, selfEval: selfEval, devPath: devPath, goals: goals, plan: plan, dateStr: dateStr });
+    var imgData = drawA4PlanToImages({ name: name, dept: dept, projectName: projectName, presentText: presentText, devPath: devPath, goals: goals, plan: plan, dateStr: dateStr });
     if (!imgData || imgData.length === 0) { showToast('图片生成失败，请重试', 'error'); return; }
 
     // 展示图片预览，由用户在新的用户手势下长按保存或点击批量保存（移动端最稳，不受下载API限制）
@@ -1855,26 +1850,23 @@ function drawA4PlanToImages(data) {
   rows.push({ kind: 'title', h: 52 });
   rows.push({ kind: 'row', cells: [{ t: '姓名', l: 1 }, { t: data.name }, { t: '部门', l: 1 }, { t: data.dept }] });
   if (data.dept === '监理项目部') rows.push({ kind: 'row', cells: [{ t: '项目名称', l: 1, span: 1 }, { t: data.projectName, span: 3 }] });
-  rows.push({ kind: 'row', cells: [{ t: '自我评判', l: 1, span: 1 }, { t: data.selfEval, span: 3 }], minH: 56 });
+  rows.push({ kind: 'row', cells: [{ t: '现有情况', l: 1, span: 1 }, { t: data.presentText, span: 3 }], minH: 80 });
   rows.push({ kind: 'row', cells: [{ t: '发展路径', l: 1, span: 1 }, { t: data.devPath, span: 3 }] });
 
-  // 发展目标：整行标题 + 四列子表（每条目标自带达成时间，一一对应）；一套共享实施计划
-  if (data.goals && data.goals.length) {
-    rows.push({ kind: 'row', cells: [{ t: '发展目标', l: 1 }, { t: '', span: 3 }] });
-    rows.push({ kind: 'row', cells: [{ t: '序号', l: 1, w: seqW }, { t: '目标类别', l: 1, w: catW }, { t: '目标描述', l: 1, w: descW }, { t: '达成时间', l: 1, w: dateW }] });
-    data.goals.forEach(function(g, i) {
-      rows.push({ kind: 'row', cells: [
-        { t: (i + 1) + '', w: seqW },
-        { t: g.category || '', w: catW },
-        { t: g.description || '', w: descW },
-        { t: g.date || '', w: dateW }
-      ] });
-    });
-    // 实施计划：共用一套
-    rows.push({ kind: 'row', cells: [{ t: '实施计划', l: 1, span: 1 }, { t: data.plan || '', span: 3 }] });
-  } else {
-    rows.push({ kind: 'row', cells: [{ t: '发展目标', l: 1, span: 1 }, { t: '', span: 3 }], minH: 56 });
-  }
+  // 发展目标：固定五栏（类别固定），每栏描述/达成时间选填，空栏显示「无」；一套共享实施计划
+  rows.push({ kind: 'row', cells: [{ t: '发展目标', l: 1 }, { t: '', span: 3 }] });
+  rows.push({ kind: 'row', cells: [{ t: '序号', l: 1, w: seqW }, { t: '目标类别', l: 1, w: catW }, { t: '目标描述', l: 1, w: descW }, { t: '达成时间', l: 1, w: dateW }] });
+  FIXED_GOAL_CATEGORIES.forEach(function(cat, i) {
+    const g = (data.goals || []).find(x => x.category === cat) || {};
+    rows.push({ kind: 'row', cells: [
+      { t: (i + 1) + '', w: seqW },
+      { t: cat, w: catW },
+      { t: g.description || '无', w: descW },
+      { t: g.date || '无', w: dateW }
+    ] });
+  });
+  // 实施计划：共用一套
+  rows.push({ kind: 'row', cells: [{ t: '实施计划', l: 1, span: 1 }, { t: data.plan || '', span: 3 }] });
 
   // 部门负责人审核组（keep=1 整体不拆）
   rows.push({ keep: 1, kind: 'row', cells: [{ t: '部门负责人\n审核意见', l: 1, span: 1 }, { t: '', span: 3 }], minH: 100 });
