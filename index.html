@@ -141,12 +141,15 @@
     color: #1e293b;
     white-space: nowrap;
   }
-  .goal-fixed-row .goal-description { flex: 1 1 auto; min-width: 0; }
+  .goal-fixed-row .goal-desc-wrap { flex: 1 1 auto; min-width: 0; }
+  .goal-fixed-row .goal-description { width: 100%; }
   .goal-fixed-row .goal-date { flex: 0 0 11.5rem; min-width: 0; }
+  .goal-fixed-row .goal-date:disabled { background: #f1f5f9; color: #64748b; cursor: not-allowed; }
+  .goal-hint { margin-top: 0.3rem; font-size: 0.75rem; line-height: 1.45; color: #64748b; }
   @media (max-width: 640px) {
     .goal-fixed-row { flex-wrap: wrap; }
     .goal-fixed-cat { flex: 0 0 100%; }
-    .goal-fixed-row .goal-description { flex: 1 1 100%; }
+    .goal-fixed-row .goal-desc-wrap { flex: 1 1 100%; }
     .goal-fixed-row .goal-date { flex: 1 1 100%; }
   }
   .btn {
@@ -704,14 +707,13 @@
       <div class="g-step"><span class="g-badge">1</span><div class="g-step-text">使用电脑打开表单，<strong class="g-bold">逐项如实填写</strong>信息与个人发展目标</div></div>
       <div class="g-step"><span class="g-badge">2</span><div class="g-step-text">填写完成核对无误后，点击<span class="g-hl">「提交保存数据」</span>提交系统存档</div></div>
       <div class="g-step"><span class="g-badge">3</span><div class="g-step-text">提交成功后点击<span class="g-hl">「导出 Word」</span>，用于打印纸质版</div></div>
-      <div class="g-step"><span class="g-badge">4</span><div class="g-step-text">打印后交<b class="g-bold">部门负责人填写审核意见并签字</b></div></div>
-      <div class="g-step"><span class="g-badge">5</span><div class="g-step-text">以<b class="g-bold">部门/事业部/项目部为单位</b>统一报送留档</div></div>
+      <div class="g-step"><span class="g-badge">4</span><div class="g-step-text">以<b class="g-bold">部门/事业部/项目部为单位</b>统一报送留档</div></div>
     </div>
 
     <div class="g-cards">
       <div class="g-card deadline">
         <div class="g-card-label">⏰ 截止时间</div>
-        <div class="g-card-val">9月15日</div>
+        <div class="g-card-val">11月15日</div>
       </div>
       <div class="g-card target">
         <div class="g-card-label">📍 提交至</div>
@@ -869,7 +871,7 @@
         <div class="p-4 sm:p-5 space-y-3">
           <div>
             <label for="eduLevel" class="form-label required-mark">学历情况</label>
-            <input id="eduLevel" type="text" class="form-input" placeholder="如：本科、硕士、大专；如无请填「无」" oninput="updatePreview()" required>
+            <input id="eduLevel" type="text" class="form-input" placeholder="如：大专、本科、硕士" oninput="updatePreview()" required>
           </div>
           <div>
             <label for="titleLevel" class="form-label required-mark">职称情况</label>
@@ -926,7 +928,7 @@
         <div class="section-title">
           <span class="badge">4</span>
           发展目标
-          <span class="ml-auto text-xs font-normal text-slate-400">五栏均须填写，如不适用请选择「无」</span>
+          <span class="ml-auto text-xs font-normal text-slate-400">五栏均须填写；选「无」的栏目无需填达成时间</span>
         </div>
         <div class="p-4 sm:p-5">
           <div id="goalsContainer" class="space-y-2">
@@ -934,12 +936,12 @@
           </div>
           <div class="mt-4">
             <label for="implementationPlan" class="form-label required-mark">初步实施计划（一套，覆盖上述所有目标）</label>
-            <textarea id="implementationPlan" class="form-input" rows="3" placeholder="可按短期、中期、长期梳理提升步骤，写明提升措施及时间安排。" oninput="updatePreview()" required></textarea>
+            <textarea id="implementationPlan" class="form-input" rows="3" placeholder="按短期（3 年以内）、中期（3-5 年）、长期（5 年及以上）梳理提升步骤，写明提升措施及时间安排。" oninput="updatePreview()" required></textarea>
             <div class="bg-slate-50 border border-slate-200 rounded-lg p-3 mt-2 text-xs text-slate-500 leading-relaxed">
               <p class="font-semibold text-slate-600 mb-1">参考示例：</p>
-              <p>短期（本年度）：学习相关专业规范，报名对应考试，完成课程学习；</p>
-              <p>中期（1-2 年）：参与重点项目实践，积累现场经验，完成证书 / 职称申报；</p>
-              <p>长期（3 年及以上）：巩固专业能力，向技术骨干方向提升。</p>
+              <p>短期（3 年以内）：学习相关专业规范，报名对应考试，完成课程学习；</p>
+              <p>中期（3-5 年）：参与重点项目实践，积累现场经验，完成证书 / 职称申报；</p>
+              <p>长期（5 年及以上）：巩固专业能力，向技术骨干方向提升。</p>
             </div>
           </div>
         </div>
@@ -1054,6 +1056,13 @@ const GOAL_CATEGORIES = [
   { group: '专业技术方向精进', items: [] },
   { group: '其他', items: [] },
 ];
+
+// 各固定目标栏目的内嵌填报提示（仅前三个方向需要说明填报口径）
+const GOAL_HINTS = {
+  '学历提升': '学历进阶规划，结合人才队伍建设，鼓励员工持续提升学历层次',
+  '新获证书': '规划考取的证书，应与本人当前岗位任职要求相匹配',
+  '新获职称': '围绕高层次人才队伍建设，应将取得高级职称作为中长期重点目标',
+};
 
 // ========== Supabase REST 辅助（原生 fetch，不依赖外部库） ==========
 function supabaseFetch(path, method, body) {
@@ -1332,16 +1341,40 @@ function renderFixedGoals(values) {
     } else {
       descHtml = '<input type="text" class="form-input goal-description" placeholder="如：' + goalPlaceholder(cat) + '（必填，如不适用请填「无」）" oninput="updatePreview()">';
     }
+    const hint = GOAL_HINTS[cat] || '';
     row.innerHTML =
       '<div class="goal-fixed-cat">' + cat + '</div>' +
-      descHtml +
-      '<input type="text" class="form-input goal-date" placeholder="达成时间，如：2027年（选填）" oninput="updatePreview()">';
+      '<div class="goal-desc-wrap">' + descHtml + (hint ? '<div class="goal-hint">' + hint + '</div>' : '') + '</div>' +
+      '<input type="text" class="form-input goal-date" placeholder="达成时间，如：2027年" oninput="updatePreview()">';
     const dv = row.querySelector('.goal-description');
     if (v.description) dv.value = v.description;
     const dt = row.querySelector('.goal-date');
     if (v.date) dt.value = v.date;
+    // 描述变化时同步达成时间状态（选「无」则该栏无需填日期）
+    dv.addEventListener('change', function () { syncGoalRowState(row); });
+    dv.addEventListener('input', function () { syncGoalRowState(row); });
+    syncGoalRowState(row);
     container.appendChild(row);
   });
+}
+
+// 目标描述为「无」时，达成时间无需填写：自动置「无」并禁用输入框
+function syncGoalRowState(row) {
+  if (!row) return;
+  const dv = row.querySelector('.goal-description');
+  const dt = row.querySelector('.goal-date');
+  if (!dv || !dt) return;
+  const isNone = (dv.value || '').trim() === '无';
+  if (isNone) {
+    dt.value = '无';
+    dt.disabled = true;
+    dt.placeholder = '无提升事项，无需填写';
+    row.dataset.autoDate = '1';
+  } else if (dt.disabled) {
+    dt.disabled = false;
+    dt.placeholder = '达成时间，如：2027年';
+    if (row.dataset.autoDate === '1') { dt.value = ''; delete row.dataset.autoDate; }
+  }
 }
 
 function goalPlaceholder(cat) {
@@ -1375,6 +1408,29 @@ function hasShortcoming(text) {
     if (text.indexOf(keys[i]) > -1) return true;
   }
   return false;
+}
+
+// 判断「达成时间」是否为具体年份（如 2027年 / 2028 / 2027、2029年）
+// 不接受「一年内」「两年内」「本年度」等相对表述；该栏目标为「无」时允许填「无」
+function isSpecificYear(text) {
+  const t = (text || '').replace(/[\s。]/g, '');
+  if (t === '无' || t === '暂无' || t === '没有') return true;
+  return /(?:^|[^\d])(?:19|20|21)\d{2}(?!\d)/.test(t);
+}
+
+// 达成时间最早可填年份：不得早于 2026 年（2025 年及以前一律视为不符合）
+const MIN_GOAL_YEAR = 2026;
+
+// 达成时间是否满足「不早于 2026 年」
+function isYearNotPast(text) {
+  const t = (text || '').replace(/[\s。]/g, '');
+  if (t === '无' || t === '暂无' || t === '没有') return true;
+  const years = t.match(/\d{4}/g);
+  if (!years) return true;
+  for (let i = 0; i < years.length; i++) {
+    if (parseInt(years[i], 10) < MIN_GOAL_YEAR) return false;
+  }
+  return true;
 }
 
 // 收集目标数据（固定五栏，空栏也保留，导出时显示「无」）
@@ -1423,7 +1479,7 @@ function updatePreview() {
   // 发展路径
   html += '<tr><td class="doc-label">发展路径</td><td colspan="3">' + escapeHtml(devPath || '　　　　') + '</td></tr>';
 
-  // 发展目标：固定五栏（类别固定），每栏描述/达成时间选填，空栏显示「无」
+  // 发展目标：固定五栏（类别固定），每栏描述与达成时间均为必填，空栏描述填「无」
   // 采用独立嵌套子表 + 固定列宽（序号列容纳表头为准，其余三列等宽），
   // 避免与外层基本信息表 colspan 互相拉扯导致多条目标时错乱或挤压。
   html += '<tr><td class="doc-label" colspan="4">发展目标</td></tr>';
@@ -1476,7 +1532,13 @@ function validateForm() {
     return false;
   }
   const present = collectPresentSituation();
-  if (!present.edu) { showToast('请填写学历情况（如无请填「无」）', 'error'); document.getElementById('eduLevel').focus(); return false; }
+  if (!present.edu) { showToast('请填写学历情况（如：大专、本科、硕士）', 'error'); document.getElementById('eduLevel').focus(); return false; }
+  const eduClean = present.edu.replace(/[。.；;，,、\s]/g, '');
+  if (['无', '暂无', '没有', '无无'].indexOf(eduClean) > -1) {
+    showToast('学历情况不能填「无」，请填写实际学历（如：大专、本科、硕士）', 'error');
+    document.getElementById('eduLevel').focus();
+    return false;
+  }
   if (!present.title) { showToast('请填写职称情况（如无请填「无」）', 'error'); document.getElementById('titleLevel').focus(); return false; }
   if (!present.qual) { showToast('请填写职业资格（如无请填「无」）', 'error'); document.getElementById('qualification').focus(); return false; }
   if (!present.ability) { showToast('请填写现有专业能力（须写明具备的能力和存在的不足）', 'error'); document.getElementById('proAbility').focus(); return false; }
@@ -1499,6 +1561,27 @@ function validateForm() {
     showToast('请填写【' + emptyCat.category + '】目标（如不适用请选择「无」）', 'error');
     const row = document.querySelector('#goalsContainer .goal-fixed-row[data-category="' + emptyCat.category + '"]');
     if (row) { const d = row.querySelector('.goal-description'); if (d) d.focus(); }
+    return false;
+  }
+  const noDate = goals.find(g => g.description !== '无' && !(g.date && g.date.trim()));
+  if (noDate) {
+    showToast('请填写【' + noDate.category + '】的达成时间', 'error');
+    const row = document.querySelector('#goalsContainer .goal-fixed-row[data-category="' + noDate.category + '"]');
+    if (row) { const d = row.querySelector('.goal-date'); if (d) d.focus(); }
+    return false;
+  }
+  const badDate = goals.find(g => g.description !== '无' && !isSpecificYear(g.date));
+  if (badDate) {
+    showToast('【' + badDate.category + '】的达成时间请填写具体年份（如：2027年），不要填「一年内」「两年内」等相对时间。如果无提升事项，则时间填「无」', 'error');
+    const row = document.querySelector('#goalsContainer .goal-fixed-row[data-category="' + badDate.category + '"]');
+    if (row) { const d = row.querySelector('.goal-date'); if (d) d.focus(); }
+    return false;
+  }
+  const pastDate = goals.find(g => g.description !== '无' && !isYearNotPast(g.date));
+  if (pastDate) {
+    showToast('【' + pastDate.category + '】的达成时间不能早于 ' + MIN_GOAL_YEAR + ' 年，请填写 ' + MIN_GOAL_YEAR + ' 年及以后的年份（如：' + MIN_GOAL_YEAR + '年、' + (MIN_GOAL_YEAR + 1) + '年）', 'error');
+    const row = document.querySelector('#goalsContainer .goal-fixed-row[data-category="' + pastDate.category + '"]');
+    if (row) { const d = row.querySelector('.goal-date'); if (d) d.focus(); }
     return false;
   }
   if (!collectPlan().trim()) { showToast('请填写初步实施计划', 'error'); var pe = document.getElementById('implementationPlan'); if (pe) pe.focus(); return false; }
@@ -1853,7 +1936,7 @@ function drawA4PlanToImages(data) {
   rows.push({ kind: 'row', cells: [{ t: '现有情况', l: 1, span: 1 }, { t: data.presentText, span: 3 }], minH: 80 });
   rows.push({ kind: 'row', cells: [{ t: '发展路径', l: 1, span: 1 }, { t: data.devPath, span: 3 }] });
 
-  // 发展目标：固定五栏（类别固定），每栏描述/达成时间选填，空栏显示「无」；一套共享实施计划
+  // 发展目标：固定五栏（类别固定），每栏描述与达成时间均为必填；一套共享实施计划
   rows.push({ kind: 'row', cells: [{ t: '发展目标', l: 1 }, { t: '', span: 3 }] });
   rows.push({ kind: 'row', cells: [{ t: '序号', l: 1, w: seqW }, { t: '目标类别', l: 1, w: catW }, { t: '目标描述', l: 1, w: descW }, { t: '达成时间', l: 1, w: dateW }] });
   FIXED_GOAL_CATEGORIES.forEach(function(cat, i) {
