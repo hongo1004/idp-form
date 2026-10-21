@@ -713,11 +713,11 @@
     <div class="g-cards">
       <div class="g-card deadline">
         <div class="g-card-label">⏰ 截止时间</div>
-        <div class="g-card-val">11月15日</div>
+        <div class="g-card-val">11月5日</div>
       </div>
       <div class="g-card target">
         <div class="g-card-label">📍 提交至</div>
-        <div class="g-card-val">吴琳音</div>
+        <div class="g-card-val">党政综合办</div>
       </div>
     </div>
 
@@ -1501,6 +1501,7 @@ function updatePreview() {
   html += '<tr><td class="doc-label">实施计划</td><td colspan="3">' + (plan ? escapeHtml(plan).replace(/\n/g, '<br>') : '　') + '</td></tr>';
 
   // 审核意见栏
+  html += '<tr><td class="doc-label">本人签字</td><td style="height:40px;"></td><td class="doc-label">日期</td><td style="height:40px;"></td></tr>';
   html += '<tr><td class="doc-label">部门负责人<br>审核意见</td><td colspan="3" style="height:96px;"></td></tr>';
   html += '<tr><td class="doc-label">负责人签字</td><td style="height:40px;"></td><td class="doc-label">日期</td><td style="height:40px;"></td></tr>';
   html += '<tr><td class="doc-label">公司意见</td><td colspan="3" style="height:96px;"></td></tr>';
@@ -1795,6 +1796,7 @@ function exportWord() {
     + goalsHtml
     + '</tbody>'
     + '<tbody style="page-break-inside: avoid;">'
+    + '<tr style="height:30pt;"><td class="lbl side">本人签字</td><td style="text-align:center;">　</td><td class="lbl side">日期</td><td style="text-align:center;">　</td></tr>'
     + '<tr style="height:80pt;"><td class="lbl side">部门负责人<br>审核意见</td><td colspan="3" style="text-align:center;">　</td></tr>'
     + '<tr style="height:30pt;"><td class="lbl side">负责人签字</td><td style="text-align:center;">　</td><td class="lbl side">日期</td><td style="text-align:center;">　</td></tr>'
     + '</tbody>'
@@ -1951,6 +1953,8 @@ function drawA4PlanToImages(data) {
   // 实施计划：共用一套
   rows.push({ kind: 'row', cells: [{ t: '实施计划', l: 1, span: 1 }, { t: data.plan || '', span: 3 }] });
 
+  // 本人签字栏
+  rows.push({ kind: 'row', cells: [{ t: '本人签字', l: 1 }, { t: '' }, { t: '日期', l: 1 }, { t: '' }], minH: 30 });
   // 部门负责人审核组（keep=1 整体不拆）
   rows.push({ keep: 1, kind: 'row', cells: [{ t: '部门负责人\n审核意见', l: 1, span: 1 }, { t: '', span: 3 }], minH: 100 });
   rows.push({ keep: 1, kind: 'row', cells: [{ t: '负责人签字', l: 1 }, { t: '' }, { t: '日期', l: 1 }, { t: '' }], minH: 30 });
